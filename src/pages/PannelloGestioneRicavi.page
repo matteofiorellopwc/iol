@@ -1,0 +1,39 @@
+<apex:page controller="ControllerPannelloGestioneRicavi">
+<style>
+    /*** Page-block Facet Header ***/
+    .facetHeaderTitle {
+        width: 300px;
+        text-align: center; 
+    }
+    
+    .facetHeaderTitle img{
+        margin-right: 10px; 
+        vertical-align: middle;
+        position: relative;
+        bottom: 3px;
+    }
+</style>
+<apex:sectionHeader subtitle="Gestione Data Chiusura Ricavi"/>
+<apex:pageMessages escape="false" ></apex:pageMessages>
+<apex:form >
+    <apex:pageBlock rendered="{!NOT(errorOccurred)}">
+
+        <apex:pageBlockSection columns="2" collapsible="false">
+            <apex:selectList value="{!nuovoAnnoChiusuraRicavi}" multiselect="false" size="1" label="Anno">
+                <apex:selectOptions value="{!anni}"/>
+            </apex:selectList>
+            <apex:selectList value="{!nuovoMeseChiusuraRicavi}" multiselect="false" size="1" label="Mese">
+                <apex:selectOptions value="{!mesi}"/>
+            </apex:selectList>
+        </apex:pageBlockSection>
+        <apex:facet name="footer">
+            <apex:panelGrid columns="1" columnClasses="facetHeaderTitle, facetHeaderButtons">
+                <apex:panelGroup >
+                    <apex:commandButton value="Imposta" action="{!aggiornaDataChiusuraRicavi}" />
+                </apex:panelGroup>    
+            </apex:panelGrid>
+         </apex:facet>
+    </apex:pageBlock>
+
+</apex:form>
+</apex:page>

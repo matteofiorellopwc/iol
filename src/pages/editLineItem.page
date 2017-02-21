@@ -1,0 +1,739 @@
+<apex:page standardController="LineItem__c" extensions="ExtensionEditLineItem" tabStyle="Opportunity" sidebar="false" cache="false">
+
+    <style>
+        .picklistTime{  width: 50px; }
+        .activeTab { background-color: #236FBD; color:white; background-image:none }
+        .inactiveTab { background-color: lightgrey; color:black; background-image:none}
+        .dateFormat {display:none;}
+        
+        table.multiSelectPicklistTable select{
+            width: 190px;
+            height: 160px;
+        }
+          
+        /*** Page-block Facet Header ***/
+        .facetHeaderTitle {
+            width: 300px;
+        }
+        
+        .facetHeaderTitle img{
+            margin-right: 10px;
+            vertical-align: middle;
+            position: relative;
+            bottom: 3px;
+        }
+        
+        .facetHeaderButtons {
+        }
+        
+        /*** Delivery Progress **/
+        .deliveryProgress {
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        
+        .underDelivered {
+            color: #CC0000;
+        }
+    </style>
+
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+<c:jQueryUtil /> 
+
+<apex:variable value="{!AND(NOT(ISBLANK(LineItem__c.Opportunity__r.DataPrimaChiusaVinta__c)),CONTAINS(LineItem__c.Opportunity__r.Profili_blocco_dopo_prima_chiusura__c,'_'&$Profile.Name&'_'))}" var="blockEditAfterFirstClosed"/>
+<apex:variable value="{!OR(NOT(LineItem__c.Opportunity__r.iswon),CONTAINS(LineItem__c.Opportunity__r.Profili_conferma_e_gestione_post_conferm__c,'_'&$Profile.Name&'_'))}" var="canEditAfterClosed"/>
+<apex:variable value="{!OR(LineItem__c.ProductFamily__c = 'Search',LineItem__c.ProductFamily__c = 'Placeholder')}" var="isSearchOrPlaceholder"/>
+<apex:variable value="{!NOT(ISBLANK(LineItem__c.Pacchetto_Combo_Opportunity__c))}" var="isPacchetto"/>
+<apex:variable value="{!OR(LineItem__c.Ripianificato__c,LineItem__c.RimozioneParteNonErogata__c)}" var="RipianificatoMinorRicavo"/>
+<apex:variable value="{! canEditOpportunity && !blockEditAfterFirstClosed }" var="canEdit" />
+<apex:variable value="{! localU.isLocalUser && !localU.isLocalAdminUser }" var="isSalesLocal" />
+<apex:variable value="{! localU.isLocalUser && localU.isLocalAdminUser }" var="isSuperSalesLocal" />
+
+<apex:pageMessage title="Attenzione!" rendered="{! blockEditAfterFirstClosed}" severity="warning" strength="2" >
+        Non si ha il permesso di modificare un'Opportunità dopo la prima chiusura.
+</apex:pageMessage>
+<apex:pageMessage title="Attenzione!" rendered="{!lineItemIdDaRipianificare != null}" severity="warning" strength="2" >
+        E' in corso la ripianificazione del Line Item: <br/><apex:outputField value="{!lineItemDaRipianificare.Nome_DFP__c}" />
+</apex:pageMessage>
+<apex:pageMessage title="Attenzione" detail="Il sistema non è in grado di garantire la disponibilità per i line item CPM serviti da OAS"  severity="info" strength="2" rendered="{!LineItem__c.Delivery_Model__c = 'CPM' && LineItem__c.Ad_Server__c = 'OAS'}" />
+<apex:pageMessages escape="false" ></apex:pageMessages>
+<apex:pageMessage title="Opportunità in approvazione" detail="Non si possono modificare lineitem se l'opportunità è in approvazione"  severity="warning" strength="2" rendered="{!LineItem__c.Opportunity__r.In_approvazione__c}"/>
+<apex:form >
+<apex:pageMessage title="Attenzione" detail="Questo Line Item è stato cancellato. Per ripristinarlo cliccare sull'apposito pulsante." severity="info" strength="2" rendered="{!LineItem__c.Cancellato__c}">
+    <apex:commandButton action="{!undeleteLineItem}" value="Ripristina Line Item"/>
+</apex:pageMessage>
+<apex:pageMessage title="Attenzione" severity="warning" strength="2" rendered="{!LineItem__c.Ripianificato__c}" >
+    Questo line item è stato ripianificato e non può essere più modificato
+</apex:pageMessage>
+<apex:pageMessage title="Attenzione" severity="warning" strength="2" rendered="{!LineItem__c.RimozioneParteNonErogata__c}" >
+    Da questo line item è stata rimossa la parte non erogata e non può essere più modificato
+</apex:pageMessage> 
+<apex:pageMessage title="Attenzione" severity="info" strength="2" rendered="{!NOT(ISBLANK(LineItem__c.Data_sospensione_erogazione__c))}" >
+    Il line item è stato sospeso il giorno &nbsp; <apex:outputField value="{!LineItem__c.Data_sospensione_erogazione__c}" />
+</apex:pageMessage>
+<apex:outputPanel id="AlertOverbook">
+    <apex:pageMessage strength="2" severity="warning" title="Attenzione" detail="Superata la soglia massima overbook. Necessaria approvazione opportunity." rendered="{!NOT(ISBLANK(LineItem__c.PercentualeBacinoDisponibileOccupato__c)) && LineItem__c.PercentualeBacinoDisponibileOccupato__c > 120 && !(LineItem__c.OverbookApprovato__c)}"  />
+</apex:outputPanel>
+
+<div style="float:right">
+    <span>{!actualLineItem} of {!totalLineItems}</span>&nbsp;
+    <apex:commandButton action="{!gotoPrevious}" value="<" />
+    <apex:commandButton action="{!gotoNext}" value=">"  />
+</div>
+
+
+<script type="text/javascript">
+    var __sfdcSessionId = '{!GETSESSIONID()}';
+</script>
+   
+<script src="/soap/ajax/25.0/connection.js" type="text/javascript"></script>
+<script type="text/javascript">
+    j$ = jQuery.noConflict();
+
+    function checkPicklistTime(){
+        j$('.picklistTime').each(function(){
+            id = escapeID(this.id);
+            j$(id+" option[value='']").remove();
+            if (j$(id+" option:selected").attr('value') == '') {
+                j$(id+" option[value='0']").attr('selected', 'selected');
+            }
+        });    
+    } 
+    
+    function showLoading(){
+        j$('#loadingUpdate').show();
+    }
+    
+    function hideLoading(){
+        j$('#loadingUpdate').hide();
+    }
+    
+    function checkAvailability(){
+        var startdate = j$('input[id$="startdate"]').val();
+        if(startdate === undefined){
+            startdate = j$('span[id$="startdateOutput"]').html();
+        }
+        var enddate = j$('input[id$="enddate"]').val();
+        if(enddate === undefined){
+            enddate = j$('span[id$="enddateOutput"]').html();
+        }
+        
+        var url = '{!$Site.prefix}/apex/cpdAvailability?id={!LineItem__c.id}&startdate='+startdate+'&enddate='+enddate;
+        
+        var fasciaOraria = j$('select[id$="fasciaOraria"] option:selected' ).val();
+        if(fasciaOraria != '' && fasciaOraria !== undefined){
+            url += '&fasciaOraria='+fasciaOraria;
+        }
+        
+        window.open(url);
+    
+    }
+
+    function checkContendingCpm(){
+        var startdate = j$('input[id$="startdate"]').val();
+        if(startdate === undefined){
+            startdate = j$('span[id$="startdateOutput"]').html();
+        }
+        var enddate = j$('input[id$="enddate"]').val();
+        if(enddate === undefined){
+            enddate = j$('span[id$="enddateOutput"]').html();
+        }
+        
+        var url = '{!$Site.prefix}/apex/ContendingCPM?id={!LineItem__c.Id}&startdate='+startdate+'&enddate='+enddate;
+        
+        var fasciaOraria = j$('select[id$="priorityInput"] option:selected' ).val();
+        if(fasciaOraria != '' && fasciaOraria !== undefined){
+            url += '&priority='+fasciaOraria;
+        }
+        
+        window.open(url);
+    }
+    
+    window.onunload = onunloadPage;
+    window.onbeforeunload = onbeforeloadPage;
+
+    function onbeforeloadPage(){
+        if({!AND(NOT(LineItem__c.Personalizzato__c),NOT(ISBLANK($CurrentPage.parameters.firstTime)))}){
+            return 'Il lineitem non è stato salvato, le modifiche andranno perse';
+        }
+    }
+        
+    function onunloadPage(){
+        if({!AND(NOT(LineItem__c.Personalizzato__c),NOT(ISBLANK($CurrentPage.parameters.firstTime)))}){
+            sforce.connection.deleteIds(['{!lineitem__c.id}']);
+        }
+    }
+    
+    function resetUnload(){
+        window.onbeforeunload = function(){};
+        window.onunload = function(){}
+    }
+    
+    function checkPersonalizzato(){
+        if({!AND(NOT(LineItem__c.Personalizzato__c),NOT(ISBLANK($CurrentPage.parameters.firstTime)))}){
+            return confirm('Il lineitem non è stato salvato, le modifiche andranno perse');
+        }else{
+            return true;
+        }
+    }
+
+
+</script>
+    
+    <script>
+        j$(document).ready(function() {
+            if({!isPacchetto}){
+                j$('input.readonlyForPack').attr('readonly','readonly');
+                j$('input.readonlyForPack').css('background-color','#CCC');                 
+            }
+        });
+    </script>
+    
+    <!-- Utilizzata per visualizzare o meno la lookup AdUnitCPD__c ed il tab Inventy Target
+         se il prodotto è un CPD ed il nuovo campo canale primario non è vuoto -->
+    <apex:variable value="{!LineItem__c.Utilizza_Ad_Unit_CPD__c}" var="isNewCPD"/>
+    
+    <!-- Regola di visibilità della Delivery Progress -->
+    <apex:variable value="{!AND(LineItem__c.Integrato_con_DFP_formula__c="true", LineItem__c.Start_Date__c < TODAY(), LineItem__c.ProductFamily__c="Banner", LineItem__c.Numero_di_giorni__c > 1, 
+                            OR(LineItem__c.Status__c = 'DELIVERING', LineItem__c.Status__c = 'PAUSED', LineItem__c.Status__c = 'PAUSED_INVENTORY_RELEASED', LineItem__c.Status__c = 'COMPLETED'))}" var="showDeliveryProgress"/>
+    
+    <apex:pageBlock id="pageBlock">
+
+        <!-- FACET HEADER -->
+        <apex:facet name="header">
+            <apex:panelGrid columns="2" columnClasses="facetHeaderTitle, facetHeaderButtons">
+                <apex:panelGroup >
+                    <apex:image value="{!IF(LineItem__c.delivery_progress__c < 100, '/img/msg_icons/warning24.png', '/img/msg_icons/info24.png')}" rendered="{!showDeliveryProgress}"/>
+                    <apex:outputText value="{!'Delivery progress: '&TEXT(LineItem__c.delivery_progress__c)&'%'}" rendered="{!showDeliveryProgress}" styleClass="{!IF(LineItem__c.delivery_progress__c < 100, 'deliveryProgress underDelivered', 'deliveryProgress')}"/>
+                </apex:panelGroup>   
+                <apex:panelGroup >
+                    <apex:commandButton action="{!customSave}" value="Salva" onclick="resetUnload()" rendered="{!AND(NOT(LineItem__c.Opportunity__r.In_approvazione__c),canEditAfterClosed,canEdit,NOT(RipianificatoMinorRicavo))}" />
+                    <apex:commandButton action="{!saveAndNew}" value="Salva e Nuovo" onclick="resetUnload()" rendered="{!AND(NOT(LineItem__c.Opportunity__r.In_approvazione__c),canEditAfterClosed,canEdit,NOT(RipianificatoMinorRicavo))}" />            
+                    <apex:commandButton action="{!customCancel}" immediate="true"  value="Torna all'opportunità"/>
+                    <apex:commandButton rendered="{!LineItem__c.Delivery_Model__c = 'CPD' && !RipianificatoMinorRicavo}" immediate="true" onclick="checkAvailability();return false;" value="Disponibilità CPD" reRender="" />
+                    <apex:commandButton rendered="{!(LineItem__c.Integrato_con_DFP_formula__c = 'true' || LineItem__c.Integrato_con_OAS_formula__c == 'true') && (!lineItemRipianificabile && !RipianificatoMinorRicavo)}" immediate="true" onclick="window.open('{!$Site.prefix}/apex/OpportunityIntegrationAdServer?id={!LineItem__c.Opportunity__c}');" value="Gestisci sincronizzazione con Ad Server" />
+                    <apex:commandButton rendered="{!LineItem__c.Delivery_Model__c == 'CPM' && !RipianificatoMinorRicavo}" onclick="checkContendingCpm();return false;" value="Contending CPM" />
+                    <!--
+                    <apex:commandButton rendered="{! !(isblank(LineItem__c.Id_DFP__c) && isblank(LineItem__c.Id_Oas__c)) && !suspended && !RipianificatoMinorRicavo}" immediate="true" action="{!sospendiErogazione}" value="Sospendi Erogazione" />
+                    -->
+
+                    <apex:commandButton rendered="{!lineItemRipianificabile && LineItem__c.Opportunity__r.StageName == 'Chiusa Vinta – in modifica' && CONTAINS(LineItem__c.Opportunity__r.Profili_conferma_e_gestione_post_conferm__c,'_'&$Profile.Name&'_')}" immediate="true" action="{!minorRicavoAction}" value="Verifica Minor Ricavi" />
+                </apex:panelGroup>    
+            </apex:panelGrid>
+        </apex:facet> <!-- FINE FACET HEADER -->
+        
+        <!--<apex:pageBlockButtons >
+            <apex:commandButton action="{!customSave}" value="Salva" onclick="resetUnload()" rendered="{!AND(NOT(LineItem__c.Opportunity__r.In_approvazione__c),canEditAfterClosed,canEdit)}" />
+            <apex:commandButton action="{!saveAndNew}" value="Salva e Nuovo" onclick="resetUnload()" rendered="{!AND(NOT(LineItem__c.Opportunity__r.In_approvazione__c),canEditAfterClosed,canEdit)}" />            
+            <apex:commandButton action="{!customCancel}" immediate="true"  value="Torna all'opportunità"/>
+            <apex:commandButton rendered="{!LineItem__c.Delivery_Model__c = 'CPD'}" immediate="true" onclick="checkAvailability();return false;" value="Disponibilità CPD" reRender="" />
+            <apex:commandButton rendered="{!LineItem__c.Integrato_con_DFP_formula__c = 'true' || LineItem__c.Integrato_con_OAS_formula__c == 'true'}" immediate="true" onclick="window.open('{!$Site.prefix}/apex/OpportunityIntegrationAdServer?id={!LineItem__c.Opportunity__c}');" value="Gestisci sincronizzazione con Ad Server" />
+            <apex:commandButton rendered="{!LineItem__c.Delivery_Model__c == 'CPM'}" onclick="window.open('{!$Site.prefix}/apex/ContendingCPM?id={!LineItem__c.Id}');return false;" value="Contending CPM" />
+        </apex:pageBlockButtons>    -->
+        <apex:pageBlockSection columns="1" >
+            <apex:outputField value="{!LineItem__c.Personalizzato__c}" rendered="false"  />
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >{!$ObjectType.LineItem__c.fields.Name_Dfp__c.label}</apex:outputLabel>
+                <apex:outputText >{!liNameDfp}</apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:outputField value="{!LineItem__c.Name_Dfp__c}" rendered="false" />
+            <apex:inputField value="{!LineItem__c.Suffisso_nome__c}" />
+            
+            <apex:inputField value="{!LineItem__c.Tipo_Line_Item__c}" rendered="{!NOT(LineItem__c.local__c)}" required="true" />
+            <apex:outputField value="{!LineItem__c.Tipo_Line_Item__c}" rendered="{!LineItem__c.local__c}"/>
+
+            <apex:outputField value="{!LineItem__c.Layout_standard__c}" />
+            <apex:outputField value="{!LineItem__c.Opportunity__c}" rendered="true" />            
+            <apex:outputField value="{!LineItem__c.Product__c}" rendered="true"/>
+            <apex:outputField value="{!LineItem__c.screenshot__c}" rendered="{!AND(LineItem__c.Start_Date__c <= TODAY(),LineItem__c.Integrato_con_DFP_formula__c=='true')}" />
+            <apex:outputField value="{!LineItem__c.Pacchetto_Combo_Opportunity__c}" rendered="{!isPacchetto}"/>
+            <apex:outputField value="{!LineItem__c.Product__r.family}"/>
+            <apex:inputField label="" style="display:none;"  value="{!LineItem__c.Formato_prodotto__c}" rendered="{!NOT(ISBLANK(LineItem__c.Formato_prodotto__c))}"/>
+            <apex:outputField value="{!LineItem__c.Formato_prodotto__c}" rendered="{!NOT(ISBLANK(LineItem__c.Formato_prodotto__c))}"/>
+            <apex:inputField label="Redirect - Rich Media" value="{!LineItem__c.Specificazione_prodotto__c}" rendered="{!AND(LineItem__c.Ad_Server__c = 'DFP',LineItem__c.ProductFamily__c  == 'Banner',NOT(ISBLANK(LineItem__c.Formato_prodotto__c)))}" onchange="updatecalc('');"  />
+            <apex:inputField label="" style="display:none;"  value="{!LineItem__c.Categoria_Libero__c}" rendered="{!NOT(ISBLANK(LineItem__c.Categoria_Libero__c))}"/>
+            <apex:outputField value="{!LineItem__c.Categoria_Libero__c}" />
+            <apex:inputField label="Area editoriale" value="{!LineItem__c.Vertical__c}" required="true"  rendered="{!AND(LineItem__c.Product__r.Vertical_obbligatorio_su_LI__c,NOT(ISBLANK(LineItem__c.Categoria_Libero__c)))}"  />
+            <apex:inputField style="width:400px;" value="{!LineItem__c.Note_per_cliente__c}"/>
+            <apex:inputField style="width:400px;" value="{!LineItem__c.Note_commerciali__c}" />
+            <apex:outputField value="{!LineItem__c.Ultima_modifica_prezzo__c}" rendered="false" />
+            <apex:inputField style="width:400px;" value="{!LineItem__c.Notes_dfp__c}"/>   
+            <apex:outputField value="{!LineItem__c.product__r.Note_integrazione_OAS__c}"  rendered="{!LineItem__c.Ad_Server__c = 'OAS'}" />
+            <apex:outputField value="{!LineItem__c.Ad_Server__c}" />
+            <apex:outputField value="{!LineItem__c.Stato_lavorazione_OAS__c}"  rendered="{!LineItem__c.Ad_Server__c = 'OAS'}" />
+            <apex:outputField value="{!LineItem__c.Personalizzato__c}" rendered="false"/>
+            <apex:outputField value="{!LineItem__c.Target_platform__c}" rendered="{!LineItem__c.ProductFamily__c  == 'Banner'}"/>
+            <apex:outputField value="{!LineItem__c.Delivery_Model__c}" rendered="{!NOT(ISBLANK(LineItem__c.Delivery_Model__c))}"/>            
+            <apex:outputField value="{!LineItem__c.Type_DFP__c}"  rendered="{!AND(LineItem__c.ProductFamily__c  == 'Banner',LineItem__c.isTypeDfpEdit__c = 'false')}"  />  
+            <apex:pageBlockSectionItem rendered="{!AND(LineItem__c.ProductFamily__c  == 'Banner',LineItem__c.isTypeDfpEdit__c = 'true')}" >
+                <apex:outputLabel >{!$ObjectType.LineItem__c.fields.Type_DFP__c.label}</apex:outputLabel>
+                <apex:selectList required="true" size="1" value="{!LineItem__c.Type_DFP__c}" onchange="updatecalc('');">
+                    <apex:selectOptions value="{!TypeDfpOptions}" />
+                </apex:selectList>            
+            </apex:pageBlockSectionItem>
+            <apex:outputField value="{!LineItem__c.Priority__c}" rendered="{!AND(LineItem__c.Ad_Server__c = 'DFP',LineItem__c.ProductFamily__c  == 'Banner',LineItem__c.isPriorityEdit__c = 'false',NOT(CONTAINS(LineItem__c.Profili_modifica_priorita__c,'_'&$Profile.Name&'_')))}" />  
+            <apex:inputField id="priorityInput" required="true" value="{!LineItem__c.Priority__c}"  rendered="{!AND(LineItem__c.Ad_Server__c = 'DFP',LineItem__c.ProductFamily__c  == 'Banner',OR(LineItem__c.isPriorityEdit__c = 'true',CONTAINS(LineItem__c.Profili_modifica_priorita__c,'_'&$Profile.Name&'_')))}" onchange="updatecalc('');"  />  
+            <apex:outputField value="{!LineItem__c.Priority_oas__c}" rendered="{!AND(LineItem__c.Ad_Server__c = 'OAS',LineItem__c.ProductFamily__c  == 'Banner',LineItem__c.isPriorityEdit__c = 'false',NOT(CONTAINS(LineItem__c.Profili_modifica_priorita__c,'_'&$Profile.Name&'_')))}" />
+            <apex:inputField required="true" value="{!LineItem__c.Priority_oas__c}"  rendered="{!AND(LineItem__c.Ad_Server__c = 'OAS',LineItem__c.ProductFamily__c  == 'Banner',OR(LineItem__c.isPriorityEdit__c = 'true',CONTAINS(LineItem__c.Profili_modifica_priorita__c,'_'&$Profile.Name&'_')))}" onchange="updatecalc('');"  />  
+            <apex:outputField value="{!LineItem__c.Status__c}" rendered="{!LineItem__c.ProductFamily__c  == 'Banner' && LineItem__c.Ad_Server__c = 'DFP'}" />            
+            <apex:outputField value="{!LineItem__c.Status_oas__c}" rendered="{!LineItem__c.ProductFamily__c  == 'Banner' && LineItem__c.Ad_Server__c = 'OAS'}" />                        
+            <apex:outputField value="{!LineItem__c.reservationStatus__c}" rendered="{!LineItem__c.ProductFamily__c  == 'Banner' && LineItem__c.Ad_Server__c = 'DFP'}" />
+            <!--
+                <apex:outputField value="{!lineitem__c.Data_annullamento_prenotazione__c}" />
+            -->
+            <apex:outputField value="{!LineItem__c.Id_DFP__c}" rendered="{!LineItem__c.Ad_Server__c = 'DFP'}" />
+            <apex:outputField value="{!LineItem__c.Id_oas__c}" rendered="{!LineItem__c.Ad_Server__c = 'OAS'}" />
+            
+            <apex:outputField value="{!LineItem__c.CanalePrimarioProdottoFormula__c}" rendered="{!isNewCPD}"/>
+            
+            <!--
+                <apex:inputField value="{!LineItem__c.Type_DFP__c}" onchange="updatecalc('')"/>
+                <apex:inputField value="{!LineItem__c.Delivery_Model__c}" onchange="updatecalc('')"/>
+            -->
+            
+        </apex:pageBlockSection>
+
+        <!-- inserendo la shareOfVoice, si calcola la quantità come percentuale del bacino --
+            <style>
+                #backGray{
+                    position: fixed; 
+                    left: 0px;
+                    top: 0px;
+                    right: 0px;
+                    bottom: 0px;
+                    text-align: center;
+                    vertical-align: middle;
+                    background-color: rgba(30,30,30,0.6);
+                    z-index: 10;
+                    display: none;
+                }
+                #inputShareOfVoice{
+                    position: absolute; 
+                    left: 40%;
+                    top: 40%;
+                }
+                #loadingShareOfVoice{
+                    background-color: white;
+                    position: absolute; 
+                    font-size: 16px;
+                    color: red;
+                    width: 200px;
+                    padding: 5px;
+                    display: none;
+                }            
+            </style>
+            <script>
+                function showShareOfVoiceLoading(){
+                    j$('div[id$="pageBlockShareOfVoice"]').hide();
+                    j$('#loadingShareOfVoice').show();
+                }
+                function hideShareOfVoiceBlock(){
+                    j$('#backGray').hide();
+                }
+            </script>
+
+            <div id="backGray">
+                <div id="inputShareOfVoice">
+                    <apex:pageBlock id="pageBlockShareOfVoice">
+                        <apex:pageBlockSection columns="1">
+                            <apex:inputField value="{!LineItem__c.ShareOfVoice__c}" />
+                            <apex:pageBlockSectionItem>
+                                <apex:outputLabel />
+                                <apex:outputText>
+                                    <apex:commandButton value="Aggiorna quantità" onclick="showShareOfVoiceLoading();" action="{!calcolaQuantitaDaShareOfVoice}" rerender="pageBlock" /> 
+                                    <apex:commandButton value="Annulla" onclick="hideShareOfVoiceBlock();return false;" /> 
+                                </apex:outputText>
+                            </apex:pageBlockSectionItem>
+                        </apex:pageBlockSection>
+                    </apex:pageBlock>                
+                    <div id="loadingShareOfVoice">
+                        <img src="/img/loading32.gif" style="width:20px;"/>
+                        Calcolo quantità...
+                    </div>
+                </div>  
+            </div>
+        <!-- fine gestione share of voice -->
+        <apex:pageBlockSection title="Vetrina Local" columns="1" rendered="{! LineItem__c.isVetrinaLocal__c }">
+            <apex:inputField value="{!Lineitem__c.Provincia_per_FuoriZona__c }" />
+            <apex:inputField value="{!Lineitem__c.Sito_cliente_editoriale__c }" />
+        </apex:pageBlockSection>
+        <apex:pageBlockSection title="Pricing" columns="1" id="pricingSection">
+            <apex:pageMessage title="Attenzione" severity="warning" strength="2" rendered="{!NOT(lineItemSoloSuMesiAperti)}">
+                Questo Line Item ha ricavi su mesi chiusi
+            </apex:pageMessage>
+            <apex:pageBlockSectionItem >
+                <apex:outputText >Start Time</apex:outputText>
+                <apex:outputText >
+                    <apex:inputField id="startdate" required="true" value="{!LineItem__c.Start_Date__c}" rendered="{!not(isPacchetto) && not(RipianificatoMinorRicavo) && lineItemSoloSuMesiAperti}" onchange="updatecalc('startdate');" />
+                    <apex:outputField id="startdateOutput" value="{!LineItem__c.Start_Date__c}" rendered="{!isPacchetto || RipianificatoMinorRicavo || !lineItemSoloSuMesiAperti}" />
+                    <apex:inputField styleClass="picklistTime" value="{!LineItem__c.Start_Hour__c}" onchange="updatecalc('starthour');" rendered="{!!RipianificatoMinorRicavo && lineItemSoloSuMesiAperti}"/>
+                    <apex:outputText rendered="{!!RipianificatoMinorRicavo && lineItemSoloSuMesiAperti}"> :&nbsp; </apex:outputText>
+                    <apex:inputField styleClass="picklistTime" value="{!LineItem__c.Start_Minute__c}" onchange="updatecalc('startminute');" rendered="{!!RipianificatoMinorRicavo && lineItemSoloSuMesiAperti}"/>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputText >End Time</apex:outputText>
+                <apex:outputText >
+                    <apex:inputField styleClass="readonlyForPack" id="enddate" required="true" rendered="{!not(isPacchetto) && not(RipianificatoMinorRicavo) && lineItemSoloSuMesiAperti}" value="{!LineItem__c.End_Date__c}" onchange="updatecalc('enddate');" />
+                    <apex:outputField id="enddateOutput" value="{!LineItem__c.End_Date__c}" rendered="{!isPacchetto || RipianificatoMinorRicavo || !lineItemSoloSuMesiAperti}" />                    
+                    <apex:inputField styleClass="picklistTime" value="{!LineItem__c.End_Hour__c}" onchange="updatecalc('endhour');" rendered="{!!RipianificatoMinorRicavo && lineItemSoloSuMesiAperti}" />
+                    <apex:outputText rendered="{!!RipianificatoMinorRicavo && lineItemSoloSuMesiAperti}"> :&nbsp; </apex:outputText>
+                    <apex:inputField styleClass="picklistTime" value="{!LineItem__c.End_Minute__c}" onchange="updatecalc('endminute');" rendered="{!!RipianificatoMinorRicavo && lineItemSoloSuMesiAperti}"/>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>  
+            <apex:inputField required="true" value="{!LineItem__c.Fascia_oraria__c}" id="fasciaOraria" rendered="{!LineItem__c.isFasciaOrariaEdit__c && not(isPacchetto) && not(RipianificatoMinorRicavo) && lineItemSoloSuMesiAperti}" onchange="updatecalc('fasciaOraria');" />
+            <apex:inputField required="true" value="{!LineItem__c.TipoTariffa__c}" id="tariffaFerialeEstiva" rendered="{!LineItem__c.isTariffaFestivaFerialeEdit__c && not(isPacchetto) && not(RipianificatoMinorRicavo) && lineItemSoloSuMesiAperti}" onchange="updatecalc('tariffaFerialeEstiva');" />
+            <apex:outputField value="{!LineItem__c.Fascia_oraria__c}" id="fasciaOrariaOut" rendered="{!LineItem__c.isFasciaOrariaEdit__c && (isPacchetto || RipianificatoMinorRicavo || !lineItemSoloSuMesiAperti )}" />
+            <apex:outputField value="{!LineItem__c.TipoTariffa__c}" id="tariffaFerialeEstivaOut" rendered="{!LineItem__c.isTariffaFestivaFerialeEdit__c && (isPacchetto || RipianificatoMinorRicavo || !lineItemSoloSuMesiAperti)}" />
+        </apex:pageBlockSection>
+        
+        <!--<apex:pageBlockSection columns="1" showHeader="false" rendered="{!AND(NOT(isSearchOrPlaceholder),LineItem__c.Type_DFP__c <> 'ADSENSE',LineItem__c.Type_DFP__c <> 'AD_EXCHANGE',NOT(AND(OR(LineItem__c.Delivery_Model__c == 'CPM',LineItem__c.Delivery_Model__c == 'CPC'),OR(LineItem__c.Type_DFP__c == 'NETWORK',LineItem__c.Type_DFP__c == 'HOUSE'))))}">-->
+            <apex:pageBlockSection columns="1" showHeader="false" rendered="{!AND(NOT(isSearchOrPlaceholder),LineItem__c.Type_DFP__c <> 'ADSENSE',LineItem__c.Type_DFP__c <> 'AD_EXCHANGE',NOT(AND(AND(OR(LineItem__c.Delivery_Model__c == 'CPM',LineItem__c.Delivery_Model__c == 'CPC'),OR(LineItem__c.Type_DFP__c == 'SPONSORSHIP',LineItem__c.Type_DFP__c == 'NETWORK',LineItem__c.Type_DFP__c == 'HOUSE')), NOT(AND(LineItem__c.Type_DFP__c == 'SPONSORSHIP',LineItem__c.Delivery_Model__c == 'CPM')))))}">
+            <apex:outputField value="{!LineItem__c.Prezzo_listino__c}" label="{!IF(LineItem__c.local__c,'Prezzo wholesales',$ObjectType.LineItem__c.fields.Prezzo_listino__c.label)}"/>
+            <apex:outputField value="{!LineItem__c.Somma_optionals__c}"/>
+            <apex:pageBlockSectionItem rendered="{!NOT(isSearchOrPlaceholder)}">
+                <apex:outputText >
+                    Prezzo base {!IF(LineItem__c.Delivery_Model__c = 'CPD' , 'giornaliero' ,'')}
+                                {!IF(AND(LineItem__c.Delivery_Model__c = 'CPC') , 'per mille click' ,'')}
+                                {!IF(AND(LineItem__c.Delivery_Model__c = 'CPM',LineItem__c.Product__r.family = 'Banner') , 'per mille impression' ,'')}
+                                {!IF(AND(LineItem__c.Delivery_Model__c = 'CPM',LineItem__c.Product__r.family = 'Edotoriali') , 'per mille view' ,'')}
+                                {!IF(LineItem__c.Product__r.family = 'DEM' , 'per mille invii' ,'')}
+                </apex:outputText>
+                <apex:outputField value="{!LineItem__c.Prezzo_listino_optionals__c}" />
+            </apex:pageBlockSectionItem>
+            <apex:inputField styleClass="readonlyForPack" value="{!LineItem__c.sconto__c}" rendered="{!AND(NOT(isPacchetto),NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti)}" onchange="updatecalc('sconto');" />
+            <apex:outputField styleClass="readonlyForPack" value="{!LineItem__c.sconto__c}" rendered="{!OR(isPacchetto,RipianificatoMinorRicavo,not(lineItemSoloSuMesiAperti))}" />
+            <apex:outputField rendered="false" value="{!LineItem__c.Discount_Type__c}" /> <!-- messo a percentage nel controller -->
+            <apex:outputField value="{!LineItem__c.Prezzo_net__c}" />
+            <apex:outputField value="{!LineItem__c.Commissione_Agenzia__c}" />
+            <apex:inputField styleClass="readonlyForPack" value="{!LineItem__c.Prezzo_net_net__c}" rendered="{!AND(NOT(isPacchetto),NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti)}" onchange="updatecalc('netnetprice');"/>
+            <apex:outputField styleClass="readonlyForPack" value="{!LineItem__c.Prezzo_net_net__c}" rendered="{!OR(isPacchetto,RipianificatoMinorRicavo,not(lineItemSoloSuMesiAperti))}" />
+        </apex:pageBlockSection>
+        
+        <apex:pageBlockSection rendered="{!LineItem__c.Type_DFP__c == 'PRICE_PRIORITY'}">
+            <apex:inputField required="true" value="{!LineItem__c.Duration__c}" onchange="updatecalc('');" rendered="{!AND(NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti)}"/>
+            <apex:outputField value="{!LineItem__c.Duration__c}"  rendered="{!OR(RipianificatoMinorRicavo,NOT(lineItemSoloSuMesiAperti))}"/>
+        </apex:pageBlockSection>
+
+        <apex:pageBlockSection columns="1" rendered="{!AND(NOT(isSearchOrPlaceholder),OR(LineItem__c.ProductFamily__c = 'DEM',LineItem__c.ProductFamily__c = 'Editoriali',LineItem__c.Type_DFP__c == 'STANDARD',LineItem__c.Type_DFP__c == 'BULK',LineItem__c.Type_DFP__c == 'PRICE_PRIORITY'))}">
+            <apex:inputField styleClass="readonlyForPack" value="{!LineItem__c.Quantita_totale_DAILYCPC__c}" rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',NOT(LineItem__c.Delivery_Model__c = 'CPM'),NOT(isPacchetto),NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti,LineItem__c.Duration__c == "DAILY") }" onchange="updatecalc('quantita');" />
+            <apex:outputField styleClass="readonlyForPack" value="{!LineItem__c.Quantita__c}" rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',NOT(LineItem__c.Delivery_Model__c = 'CPM'),NOT(isPacchetto),NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti,LineItem__c.Duration__c == "DAILY") }"  />
+            <!-- <apex:outputText value="{!'<br />'}"  escape="false" /> -->
+            <apex:inputField styleClass="readonlyForPack" value="{!LineItem__c.Quantita__c}" rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',NOT(isPacchetto),NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti, OR(NOT(LineItem__c.Duration__c == "DAILY"),LineItem__c.Delivery_Model__c = 'CPM'))}" onchange="updatecalc('quantita');" />
+            <!--apex:outputField styleClass="readonlyForPack" value="{!LineItem__c.Quantita__c}" rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',NOT(LineItem__c.Delivery_Model__c = 'CPM'),OR(RipianificatoMinorRicavo,isPacchetto,NOT(lineItemSoloSuMesiAperti))) }" /-->
+            <apex:outputField styleClass="readonlyForPack" value="{!LineItem__c.Quantita__c}" rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',OR(RipianificatoMinorRicavo,isPacchetto,NOT(lineItemSoloSuMesiAperti))) }" />
+           <!-- <apex:outputText value="{!'<br />'}" escape="false" rendered="{!AND(OR(LineItem__c.Delivery_Model__c == 'CPM',LineItem__c.Delivery_Model__c == 'CPC'),NOT(isPacchetto),LineItem__c.Integrato_con_DFP_formula__c == 'true',NOT(LineItem__c.Duration__c == "DAILY")) }" /> 
+            <apex:outputText value="{!'<br />'}" escape="false" rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',OR(RipianificatoMinorRicavo,isPacchetto,NOT(lineItemSoloSuMesiAperti))) }" />    -->        
+           
+           <!--
+                <apex:pageBlockSectionItem rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',NOT(isPacchetto)) }">
+                    <apex:outputLabel />
+                    <button class="btn" onclick="j$('#backGray').show();return false;">Inserisci Share Of Voice</button>
+                </apex:pageBlockSectionItem>
+            -->
+            <apex:inputField value="{!LineItem__c.ShareOfVoice__c}" onchange="updatecalc('shareOfVoice');" rendered="{!AND(NOT(isPacchetto),LineItem__c.CheckUtilizzoSOV__c)}" />
+            <apex:pageBlockSectionItem rendered="{!AND(NOT(isPacchetto),LineItem__c.CheckUtilizzoSOV__c)}">
+                <apex:outputText >
+                    {!$ObjectType.LineItem__c.fields.Bacino_impressions__c.label}<br />
+                    {!$ObjectType.LineItem__c.fields.BacinoImpressionsDisponibile__c.label}
+                </apex:outputText>
+
+                <apex:outputText >
+                    <apex:outputField value="{!LineItem__c.Bacino_impressions__c}" /><br />
+                    <apex:outputField value="{!LineItem__c.BacinoImpressionsDisponibile__c}" /><br />
+                    <apex:commandButton value="Aggiorna Bacino" action="{!CheckAvailability}" reRender="pageBlock,AlertOverbook" onclick="document.getElementById('loadingForecast').style.display='';showLoading();" />
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:outputField value="{!LineItem__c.PercentualeBacinoDisponibileOccupato__c}" rendered="{!LineItem__c.CheckUtilizzoSOV__c}" />
+            
+            <apex:outputText value="{! '<br/ >'}" rendered="{!LineItem__c.CheckUtilizzoSOV__c}" escape="false" />
+
+            <!--
+            <apex:pageBlockSectionItem>
+                <apex:outputLabel />
+                <apex:commandButton value="Aggiorna quantità" onclick="showLoading();" action="{!calcolaQuantitaDaShareOfVoice}" rerender="pageBlock" /> 
+            </apex:pageBlockSectionItem>
+            <br />
+            -->
+            <!--         
+                <apex:outputText value="{!'<br />'}" escape="false" rendered="{!LineItem__c.Delivery_Model__c <> 'CPD' }" />           
+            -->
+            <apex:outputField value="{!LineItem__c.Quantita__c}" rendered="{!LineItem__c.Delivery_Model__c = 'CPD' }"/>
+            <apex:outputField value="{!LineItem__c.Impressions_stimate__c}" rendered="{!LineItem__c.Delivery_Model__c = 'CPD' }"/>
+            <apex:outputField value="{!LineItem__c.Totale__c}" rendered="{!OR(isPacchetto,RipianificatoMinorRicavo,NOT(lineItemSoloSuMesiAperti))}" />
+            <apex:inputField value="{!LineItem__c.Totale__c}"  onchange="updatecalc('totale');" rendered="{!and(NOT(isPacchetto),NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti)}" />
+        </apex:pageBlockSection>
+        
+        <apex:pageBlockSection columns="2" rendered="{!OR(LineItem__c.Type_DFP__c == 'SPONSORSHIP',LineItem__c.Type_DFP__c == 'NETWORK',LineItem__c.Type_DFP__c == 'HOUSE')}">
+            <apex:outputField value="{!LineItem__c.Quantita__c}" rendered="{!LineItem__c.Delivery_Model__c = 'CPD' }"/>
+            <apex:outputText value="{!'<br />'}" escape="false" rendered="{!LineItem__c.Delivery_Model__c = 'CPD' && LineItem__c.Integrato_con_DFP_formula__c == 'true'}" />
+            <apex:inputField styleClass="readonlyForPack" required="true" value="{!LineItem__c.Goal__c}" rendered="{!LineItem__c.Integrato_con_DFP_formula__c == 'true' && NOT(isPacchetto)}"  onchange="updatecalc('goal');" />
+            <apex:outputField styleClass="readonlyForPack" value="{!LineItem__c.Goal__c}" rendered="{!LineItem__c.Integrato_con_DFP_formula__c == 'true' && isPacchetto}" />            
+            <!--
+                <apex:outputText value="{!'<br />'}" escape="false" rendered="{!LineItem__c.Integrato_con_DFP_formula__c == 'true'}" />
+                <apex:inputField required="true" value="{!LineItem__c.Goal_delivery__c}" onchange="updatecalc('');" rendered="{!LineItem__c.Integrato_con_DFP_formula__c == 'true'}" />                        
+            -->
+            <apex:outputText value="{!'<br />'}" escape="false" rendered="{!LineItem__c.Delivery_Model__c <> 'CPD'}" />           
+            <apex:outputField value="{!LineItem__c.Impressions_stimate__c}" rendered="{!LineItem__c.Delivery_Model__c = 'CPD' }" />
+            <apex:inputField styleClass="readonlyForPack" value="{!LineItem__c.Totale__c}"  onchange="updatecalc('totale');" rendered="{!AND(LineItem__c.Delivery_Model__c = 'CPD',NOT(isPacchetto))}" />            
+            <apex:inputField styleClass="readonlyForPack" value="{!LineItem__c.Totale__c}"  onchange="updatecalc('totale');" rendered="{!AND(LineItem__c.Delivery_Model__c <> 'CPD',NOT(isPacchetto))}" />
+            <apex:outputField styleClass="readonlyForPack" value="{!LineItem__c.Totale__c}"  rendered="{!isPacchetto}" />
+        </apex:pageBlockSection>
+        
+        <apex:pageBlockSection columns="1" rendered="{!OR(isSearchOrPlaceholder,LineItem__c.Type_DFP__c == 'ADSENSE',LineItem__c.Type_DFP__c == 'AD_EXCHANGE')}">
+             <!--<apex:outputField value="{!LineItem__c.Quantita__c}"  />-->
+            <apex:inputField value="{!LineItem__c.Totale__c}"  onchange="updatecalc('totale');" />
+        </apex:pageBlockSection>
+        
+        <div style="width: 390px;">
+            <apex:pageMessage title="Attenzione" severity="info" strength="2" rendered="{!NOT(ISBLANK(valoreRipianificabile))}">
+                Il massimo valore ripianificabile è &nbsp; €&nbsp; <apex:outputText value="{!valoreRipianificabile}"/>
+            </apex:pageMessage>        
+        </div>
+
+        <apex:pageBlockSection columns="1" showHeader="false">
+            <apex:pageBlockSectionItem >
+                <apex:outputText >
+                    <script>
+                        function updatecalc(fieldEdited){
+                            showLoading();
+                            updatecalcjs(fieldEdited);
+                        }
+                        j$(document).ready(function() {
+                            checkPicklistTime();
+                        })
+                    </script>
+                    <apex:actionFunction name="updatecalcjs" action="{!updatecalc}" reRender="pageBlock,AlertOverbook" >
+                        <apex:param name="fieldEdited" value="" assignTo="{!fieldEdited}"/>
+                    </apex:actionFunction>
+                </apex:outputText>
+                <apex:outputText rendered="{!AND(NOT(isSearchOrPlaceholder),NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti)}" >
+                    <apex:commandButton action="{!updatecalc}" value="Aggiorna totale" reRender="pageBlock,AlertOverbook" onclick="showLoading();" />
+                    <img id="loadingUpdate" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:inputField value="{!LineItem__c.UV_s_gg__c}" rendered="{!AND(NOT(RipianificatoMinorRicavo),lineItemSoloSuMesiAperti)}"/>
+            <apex:outputField value="{!LineItem__c.UV_s_gg__c}" rendered="{!OR(RipianificatoMinorRicavo,NOT(lineItemSoloSuMesiAperti))}"/>
+            <apex:outputField value="{!LineItem__c.Breakeven_cost__c}" rendered="{!OR($User.Visualizza_breakeven__c,NOT($Profile.Name == 'Libero - Sales'))}" />
+        </apex:pageBlockSection>
+        
+        <apex:pageBlockSection title="Disponibilità" rendered="{!AND(NOT(RipianificatoMinorRicavo),LineItem__c.Integrato_con_DFP_formula__c = 'true',LineItem__c.ProductFamily__c = 'Banner',OR(LineItem__c.Delivery_Model__c = 'CPM',LineItem__c.Delivery_Model__c = 'CPC'),OR(LineItem__c.Type_DFP__c = 'STANDARD',LineItem__c.Type_DFP__c = 'SPONSORSHIP'))}"  >
+            <c:Forecast ControllerForecast="{!ControllerForecast}" >
+                <apex:commandButton value="controlla disponibilità" action="{!CheckAvailability}" onclick="document.getElementById('loadingForecast').style.display='';" reRender="pageBlock"/>
+            </c:Forecast>
+            <br />
+            
+        </apex:pageBlockSection>
+        <apex:pageblockSection rendered="{!LineItem__c.Delivery_Model__c = 'CPD'}" >
+            <apex:inputField value="{!LineItem__c.skipDispoCPD__c}"/>
+        </apex:pageblockSection>
+
+        <apex:pageBlockSection >
+            <apex:inputField value="{!LineItem__c.skipValidationAdServer__c}" rendered="{!LineItem__c.ProductFamily__c = 'Banner'}"/>
+        </apex:pageBlockSection>
+
+        <apex:pageBlockSection rendered="{!LineItem__c.Delivery_Model__c = 'CPC'}">
+            <apex:inputField value="{!LineItem__c.CPCQuantityAutomationUpdated__c}"/>
+        </apex:pageBlockSection>
+
+        <!-- <apex:pageBlockSection rendered="{!LineItem__c.Type_DFP__c = 'AD_EXCHANGE'}"> Voglio utilizzare il placement anche per campagne non ADX--> 
+        <apex:pageBlockSection rendered="{!LineItem__c.Categoria_Libero__c = 'Network'}">
+            <apex:inputField value="{!LineItem__c.ADX_Placement_ID__c}"/>
+        </apex:pageBlockSection>
+
+        <apex:pageBlockSection rendered="{!AND(showOptionals,LineItem__c.Product__r.family <> 'Editoriali',NOT(isPacchetto))}" title="Optionals">
+                <c:OptionalsLineItem ControllerOptionalLineItem="{!ControllerOptionalLineItem}" /> 
+        </apex:pageBlockSection>
+         
+        <apex:pageBlockSection rendered="{!NOT(ISBLANK(LineItem__c.opportunity__r.Agenzia_di_riferimento__c)) && NOT(isSearchOrPlaceholder)}" title="Commisioning" columns="1">
+            <apex:outputField value="{!LineItem__c.opportunity__r.Agenzia_di_riferimento__c}" />
+            <apex:inputField required="true" value="{!LineItem__c.Percentuale_commisioning_agenzia__c}" onchange="updatecalc('');" />
+            <apex:outputField value="{!LineItem__c.Note_commisioning__c}" rendered="{!NOT(ISBLANK(LineItem__c.Note_commisioning__c))}"/>
+        </apex:pageBlockSection>
+        
+        <c:revenueApplication ControllerRevenueApplication="{!ControllerRevenueApplication}" readOnly="{!isPacchetto || RipianificatoMinorRicavo || isSalesLocal || LineItem__c.isVetrinaLocal__c}" isVetrinaLocal="{!LineItem__c.isVetrinaLocal__c}" isSalesLocal="{!isSalesLocal}" parentObj="{!LineItem__c}" canDelete="{!ISBLANK(LineItem__c.Opportunity__r.DataPrimaChiusaVinta__c)}" rendered="{!NOT(ripianificazioneLineItem)}" />
+         
+        <c:Ricavi ControllerRicavi="{!ControllerRicaviCtrl}" readOnly="{!!lineItemSoloSuMesiAperti || ripianificazioneLineItem || RipianificatoMinorRicavo || isSalesLocal || LineItem__c.isVetrinaLocal__c}" parentObj="{!LineItem__c}" canDelete="{!ISBLANK(LineItem__c.Opportunity__r.DataPrimaChiusaVinta__c)}" />        
+        
+       
+
+        <apex:outputLink rendered="{!LineItem__c.Type_DFP__c = 'AD_EXCHANGE'}" value="{!$Site.prefix}/apex/RevenueApplicationADXUpdateFlag?id={!LineItem__c.id}">Aggiorna flag processato ADX</apex:outputLink>
+    
+        <apex:pageBlockSection title="Target DEM" collapsible="true" rendered="{!LineItem__c.ProductFamily__c = 'DEM'}" columns="2">
+         
+         <apex:inputField value="{!LineItem__c.Database__c}" />
+            <apex:inputField value="{!LineItem__c.dem_target_sesso__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Sesso'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:pageBlockSectionItem rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Fascia eta'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}">
+            <apex:outputLabel value="Fascia d'età" for="da"/>
+                <apex:outputPanel layout="block">
+                    <apex:outputLabel value="da " for="da"/>
+                    <apex:inputField value="{!LineItem__c.fascia_eta_from__c}" id="da" style="width:30px;" />
+                    <apex:outputLabel value=" a " for="a"/>
+                    <apex:inputField value="{!LineItem__c.fascia_eta_to__c}" id="a" style="width:30px;" />
+                </apex:outputPanel>
+            </apex:pageBlockSectionItem>
+
+            <apex:inputField value="{!LineItem__c.dem_target_regione__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Regione'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}" />
+           <apex:inputField value="{!LineItem__c.dem_target_provincia__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Provincia'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.dem_target_professione__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Professione'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.dem_target_interessi__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Interessi'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.dem_target_stato_civile__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Stato civile'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.dem_target_titolo_di_studio__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Titolo di studio'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.dem_target_Settore__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Categoria Nielsen'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.Dem_target_verticali__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Verticali'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.dem_target_aziende__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Aziende'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.dem_target_aziende__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Aziende'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+ 
+            
+            </apex:pageBlockSection>
+        
+         <apex:pageBlockSection title="Target SMS" collapsible="true" rendered="{!AND(LineItem__c.product__r.Formato__c <> 'No target' ,LineItem__c.ProductFamily__c = 'Banner',LineItem__c.product__r.Ad_Server__c = 'DAT', LineItem__c.product__r.Portale__c = 'Timspot',NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}" columns="2">
+            <apex:inputField value="{!LineItem__c.dem_target_sesso__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Sesso'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+            <apex:inputField value="{!LineItem__c.sms_target_fascia_eta__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Fascia eta SMS'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}" />
+                      <apex:inputField value="{!LineItem__c.dem_target_regione__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Regione'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}" />
+           <apex:inputField value="{!LineItem__c.dem_target_provincia__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Provincia'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+           <apex:inputField value="{!LineItem__c.Categoria_tematici__c}" rendered="{!AND(CONTAINS(LineItem__c.product__r.Campi_visibili_DEM__c, 'Categorie (tematici)'),NOT(ISBLANK(LineItem__c.product__r.Campi_visibili_DEM__c)))}"/>
+           
+           
+        </apex:pageBlockSection> 
+        
+
+ 
+        <apex:pageBlockSection columns="1" title="Impostazioni di erogazione DFP" rendered="{!LineItem__c.Integrato_con_DFP_formula__c = 'true'}" >
+            <apex:inputField id="autoExtensionDays" value="{!LineItem__c.autoExtensionDays__c}" rendered="{!OR(LineItem__c.Type_DFP__c = 'STANDARD',LineItem__c.Type_DFP__c = 'BULK')}" />
+            <apex:inputField value="{!LineItem__c.deliveryRateType__c}" rendered="{!OR(LineItem__c.Type_DFP__c = 'STANDARD',LineItem__c.Type_DFP__c = 'BULK')}" />
+            <apex:inputField value="{!LineItem__c.roadblockingType__c}" />
+            <apex:inputField value="{!LineItem__c.creativeRotationType__c}" />
+            <apex:inputField value="{!LineItem__c.disableSameAdvertiserCompetitiveExclusio__c}"/>
+        </apex:pageBlockSection>
+        <apex:pageBlockSection title="Dati erogato" collapsible="true" rendered="{!LineItem__c.ProductFamily__c = 'Banner'}" columns="1">
+            <apex:outputField value="{!LineItem__c.clicksDelivered__c}" />
+            <apex:outputField value="{!LineItem__c.impressionsDelivered__c}" />
+        </apex:pageBlockSection>      
+        <apex:pageBlockSection title="Dati erogato" collapsible="true" rendered="{!LineItem__c.ProductFamily__c = 'Editoriali'}" columns="1">
+            <apex:inputField value="{!LineItem__c.clicksDelivered__c}" />
+            <apex:inputField value="{!LineItem__c.impressionsDelivered__c}" />
+        </apex:pageBlockSection> 
+        <apex:pageBlockSection title="Dati erogato" collapsible="true" rendered="{!LineItem__c.ProductFamily__c = 'DEM'}" columns="1">
+            <apex:inputField value="{!LineItem__c.dem_n_click__c}" />
+            <apex:inputField value="{!LineItem__c.dem_n_consegnate__c}" />
+            <apex:inputField value="{!LineItem__c.dem_n_spedite__c}" />
+            <apex:inputField value="{!LineItem__c.dem_n_di_aperture__c}" />
+            <apex:inputField value="{!LineItem__c.dem_n_di_utenti_che_hanno_cliccato__c}" />
+            <apex:inputField value="{!LineItem__c.dem_n_utenti_che_hanno_aperto__c}" />
+        </apex:pageBlockSection>
+        
+        
+        
+<!--
+        <apex:pageBlockSection title="Adjust delivery" columns="1" >
+            <apex:inputField value="{!LineItem__c.deliveryRateType__c}" />
+        </apex:pageBlockSection>
+-->
+
+
+    </apex:pageBlock>
+    <apex:outputText rendered="false" >
+         {!LineItem__c.Goal_delivery__c}
+         {!LineItem__c.CheckUtilizzoSOV__c}
+         {!LineItem__c.ultima_modifica_quantita__c}
+         {!LineItem__c.Bacino_modificato__c}
+         {!LineItem__c.Day_Part_Targeting__r}
+         {!LineItem__c.Frequency_Caps__r}
+         {!LineItem__c.Inventory_Target__r}
+         {!LineItem__c.SectionsOasTargeted__r}
+         {!LineItem__c.PlacementTargeting__r}
+         {!LineItem__c.Technology_Targeting__r}
+         {!LineItem__c.Custom_Criteria_Set__r}
+         {!LineItem__c.CookieSearchTermsOASTargeted__r}
+         {!LineItem__c.Quantita_calcolata__c}
+         {!LineItem__c.Quantita_calcolata__c}
+         {!LineItem__c.product__r.BasePrice__c}
+         {!LineItem__c.Product__r.PermettiMinorRicavoParziale__c}
+         {!LineItem__c.Product__r.ConsentiModificaSeMesiChiusi__c}
+         {!LineItem__c.Impressions_unitarie_stimate__c}
+         {!LineItem__c.Opportunity__r.In_approvazione__c}
+         {!LineItem__c.Prezzo_listino_prodotto__c}
+         {!LineItem__c.product__r.Size__c}
+         {!LineItem__c.product__r.Target_platform__c}
+         {!LineItem__c.product__r.CanalePrimario__c}
+         {!LineItem__c.isInventoryTargetingInclude__c}
+         {!LineItem__c.isInventoryTargetingExclude__c}         
+         {!LineItem__c.Profili_gestione_targeting_lineitem__c}       
+         {!LineItem__c.ModalitaEditRevenue__c}
+         {!LineItem__c.ModalitaEditRicavo__c}
+         {!LineItem__c.product__r.Categoria_libero__c}
+         {!LineItem__c.isLabelEdit__c}
+         {!LineItem__c.Percentuale_commisioning_agenzia__c}
+         {!LineItem__c.isPagesSectionsInclude__c}
+         {!LineItem__c.isPagesSectionsExclude__c}
+         {!LineItem__c.CalcolaCPDconImpStimate__c}         
+         {!LineItem__c.Utilizza_Ad_Unit_CPD__c}
+         {!LineItem__c.Fattore_correttivo_fascia_0_12__c}
+         {!LineItem__c.Fattore_correttivo_fascia_12_16__c}
+         {!LineItem__c.Fattore_correttivo_fascia_16_24__c}
+         {!LineItem__c.ImpressionsStimateFeriali__c}
+         {!LineItem__c.ImpressionsStimateFestive__c}  
+         {!LineItem__c.Import_Ext_ID__c}    
+         {!LineItem__c.Opportunity__r.DataPrimaChiusaVinta__c}
+         {!LineItem__c.Opportunity__r.Local__c}
+         {!LineItem__c.Line_Item_Ripianificato__c}
+         {!LineItem__c.Ripianificato__c}
+         {!LineItem__c.ValoreRipianificabile__c}
+         {!LineItem__c.ValoreRipianificabileApprovato__c}
+         {!LineItem__c.ValoreRipianificabileApprovatoFormula__c}
+         {!LineItem__c.Totale_ripianificato__c}
+         {!LineItem__c.RimozioneParteNonErogata__c}
+         {!LineItem__c.ImpressionErogateMinorRicavo__c}
+         {!LineItem__c.SommaRevenueMinorRicavo__c}
+         {!LineItem__c.TotaleRevenueApplication__c}
+         {!LineItem__c.Totale_Ricavi__c}
+         {!LineItem__c.Totale__c}
+         {!LineItem__c.BacinoImpressionsDisponibile__c}
+         {!LineItem__c.PercentualeBacinoDisponibileOccupato__c}
+         {!LineItem__c.Opportunity__r.id_dfp__c}
+    </apex:outputText> 
+    <apex:tabPanel switchType="client" selectedTab="name2" tabClass="activeTab" inactiveTabClass="inactiveTab">
+        <apex:tab rendered="{!AND(isVisibleInventoryTargetTab || (LineItem__c.isInventoryTargetingEdit__c == 'true'),LineItem__c.Product__r.family = 'Banner', LineItem__c.Integrato_con_DFP_formula__c = 'true')}" label="Inventory Target" name="inventory" >
+           <apex:outputText rendered="{!LineItem__c.Product__r.InventoryTargetType__c == 'Ad Units'}">
+                <iframe src="{!$Site.prefix}/apex/editInventoryTargetingComponent?sobjectName=lineitem__c&id={!LineItem__c.id}&drillDownLevel=0&editable={!AND(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isInventoryTargetingEdit__c=='true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}&includeMode={!LineItem__c.isInventoryTargetingInclude__c}&excludeMode={!LineItem__c.isInventoryTargetingExclude__c}&filterSize={!LineItem__c.Product__r.Size__c}&platform={!lineitem__c.product__r.target_platform__c}&canalePrimario={!LineItem__c.product__r.canalePrimario__c}" width="100%" height="800px"  frameborder="0" />            
+           </apex:outputText>
+           <apex:outputText rendered="{!LineItem__c.Product__r.InventoryTargetType__c == 'Placements'}">
+                <iframe src="{!$Site.prefix}/apex/editPlacementComponent?sobjectName=lineitem__c&id={!LineItem__c.id}&canalePrimario={!LineItem__c.product__r.canalePrimario__c}&drillDownLevel=0&editable={!AND(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isInventoryTargetingEdit__c=='true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}&includeMode={!LineItem__c.isInventoryTargetingInclude__c}&excludeMode={!LineItem__c.isInventoryTargetingExclude__c}&platform={!lineitem__c.product__r.target_platform__c}" width="100%" height="800px"  frameborder="0" />           
+          </apex:outputText>
+        </apex:tab>
+        <apex:tab label="Pages and Section" name="pagesSections"  rendered="{!AND(isVisiblePagesSectionsTab || (LineItem__c.isPagesSectionsEdit__c == 'true'), LineItem__c.ProductFamily__c = 'Banner', LineItem__c.Integrato_con_OAS_formula__c = 'true')}">
+            <iframe src="{!$Site.prefix}/apex/PagesSections?sobjectName=lineitem__c&id={!LineItem__c.id}&editable={!and(NOT(RipianificatoMinorRicavo),canEdit,CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}&includeMode={!LineItem__c.isPagesSectionsInclude__c}&excludeMode={!LineItem__c.isPagesSectionsExclude__c}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>         
+        <apex:tab rendered="{!(isVisibleFrequencyCapTab || (LineItem__c.isFrequencyCapEdit__c == 'true') || LineItem__c.Ad_Server__c = 'OAS')}" label="Frequency Cap" name="frequencycap" >
+            <iframe src="{!$Site.prefix}/apex/editfrequencyCapComponent?sobjectName=lineitem__c&id={!LineItem__c.id}&editable={!AND(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isFrequencyCapEdit__c=='true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}" width="100%" height="800px"  frameborder="0" />            
+        </apex:tab>
+        <apex:tab rendered="{!isVisibleDayPartTab || (LineItem__c.isDayPartTargetingEdit__c == 'true')}" label="Day Part Targeting" name="daypart" >
+            <iframe src="{!$Site.prefix}/apex/editDayPartTargetingComponent?sobjectName=lineitem__c&id={!LineItem__c.id}&editable={!and(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isDayPartTargetingEdit__c=='true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}" width="100%" height="800px"  frameborder="0" />            
+        </apex:tab>        
+        <apex:tab rendered="{!(isVisibleCustomCriteriaTab || (LineItem__c.isCustomCriteriaEdit__c == 'true')) && LineItem__c.Integrato_con_DFP_formula__c = 'true'}" label="Custom Criteria" name="custom" >
+            <iframe src="{!$Site.prefix}/apex/editCustomCriteriaComponent?sobjectName=lineitem__c&id={!LineItem__c.id}&editable={!and(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isCustomCriteriaEdit__c=='true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>
+        <apex:tab rendered="{!(isVisibleTechnologyTargetTab || (LineItem__c.isTechnologyTargetingEdit__c == 'true')) && LineItem__c.Integrato_con_DFP_formula__c = 'true'}" label="Technology Target" name="technology" >
+            <iframe src="{!$Site.prefix}/apex/editTechnologyTargetingComponent?sobjectName=lineitem__c&id={!LineItem__c.id}&editable={!and(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isTechnologyTargetingEdit__c=='true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}" width="100%" height="800px"  frameborder="0" />
+            }
+        </apex:tab>
+        <apex:tab label="Cookie and Search Term" name="cookieSearch" rendered="{!(isVisibleCookiesTab || (LineItem__c.isCookieSearchTermEdit__c == 'true')) && LineItem__c.ProductFamily__c = 'Banner' && LineItem__c.Integrato_con_OAS_formula__c = 'true'}">
+            <iframe src="{!$Site.prefix}/apex/EditCookieSearchTerm?sobjectName=LineItem__c&id={!LineItem__c.id}&editable={!and(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isCookieSearchTermEdit__c  == 'true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>
+        <apex:tab label="Geography Target" name="geography" rendered="{!(isVisibleGeographyTab || LineItem__c.isGeographyTargetEdit__c == 'true' ) && LineItem__c.Integrato_con_DFP_formula__c = 'true'}"> 
+            <iframe src="{!$Site.prefix}/apex/EditGeographyComponent?sobjectName=LineItem__c&id={!LineItem__c.id}&editable={!and(NOT(RipianificatoMinorRicavo),canEdit,LineItem__c.isGeographyTargetEdit__c=='true',CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}" width="100%" height="800px"  frameborder="0" /> 
+        </apex:tab>
+        <apex:tab label="Labels" name="label" rendered="{!LineItem__c.ProductFamily__c = 'Banner' && LineItem__c.Integrato_con_DFP_formula__c = 'true'}">
+            <iframe src="{!$Site.prefix}/apex/editLabelComponent?id={!LineItem__c.id}&editable={!and(NOT(RipianificatoMinorRicavo),canEdit,CONTAINS(LineItem__c.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'),canEditAfterClosed)}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>     
+    </apex:tabPanel>
+</apex:form>
+
+<c:HistoryTracking obj="{!LineItem__c}" />
+
+<apex:relatedList list="ProcessSteps" rendered="{!NOT($Profile.Name == 'Libero - Sales')}"></apex:relatedList>
+
+
+
+</apex:page>

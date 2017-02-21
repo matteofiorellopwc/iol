@@ -1,0 +1,315 @@
+<apex:component allowDML="true" controller="ControllerInventoryTargeting">
+  
+    <apex:variable var="editMode" value="{!0 == 0}" />
+    <apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+    <apex:variable var="includeMode" value="{!$CurrentPage.parameters.includeMode == 'true'}" />
+    <apex:variable var="excludeMode" value="{!$CurrentPage.parameters.excludeMode == 'true'}" />
+    <apex:variable var="maxIncludes" value="{!IF(NOT(ISBLANK($CurrentPage.parameters.maxIncludes)), VALUE($CurrentPage.parameters.maxIncludes), -1)}" />  
+  
+    <apex:stylesheet value="{!URLFOR($Resource.jquery,'jquery.treeview.css')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.treeview.js')}"/>
+    <style>
+        table tr:nth-child(even) {
+            background: #FFFFFF;
+        }
+        table tr:nth-child(odd) {
+            background: #EEEEEE;
+        }
+
+        body {
+            background: #F8F8F8;
+        }
+        
+        .panelContainer {
+        }
+    
+        .leftPanel {
+            width: 46%;
+            padding: 2%;
+            float: left;
+        }
+        
+        .rightPanel {
+            width: 46%;
+            padding: 2%;
+            float: right;
+        }
+        
+        .adUnitBlock {
+            background: #FFFFFF;
+        }
+        
+        tr.adUnitBlock-header td{
+            background: #F2F3F3;
+        }
+        
+        .back a {
+            color: #515BB4;
+            margin-right: 10px;
+            text-decoration: none;
+        }
+        
+        .parent {
+            font-size: 1.6em;
+            font-weight: bold;
+        }
+        
+        .viewInventoryTarget {
+            background: #FFFFFF;
+        }
+        
+        .viewInventoryTarget-header {
+            background: #F2F3F3;
+            overflow: auto;
+            padding: 4px 10px 4px 10px;
+        }
+        
+        .iconStatus {
+            padding-left: 3px;
+            padding-right: 3px;
+        }
+        
+        .linkRemove {
+            padding-left:5px;
+        }
+        
+        /*** adUnitBlock Table ***/
+        .adUnitBlock-table {
+            width: 100%;
+            border-spacing:0;
+            border-collapse:collapse;
+        }
+        
+        .adUnitBlock-table td {
+            padding: 4px 3px;           
+        }
+        
+        .adUnitBlock-table .plusCol {
+            text-align: center;
+            width: 70px;
+        }
+        
+        .adUnitBlock-table .nameCol {
+        }
+        
+        .adUnitBlock-table .includeCol,
+        .adUnitBlock-table .excludeCol {
+            width: 80px;
+            text-align: center;
+            border-left;
+            border-left: 1px solid #F2F3F3;
+        }
+
+        input[type='button'][disabled] {
+          opacity: 0.5;
+        }
+        
+        input[type='submit'][disabled] {
+          opacity: 0.5;
+        }
+    </style>
+
+    <script type="text/javascript">     
+        function disableButtons(){
+            jQuery('.btn').attr('disabled', 'disabled');
+            jQuery('.btn').attr('value', '..carico');
+            jQuery('.back').hide();
+            jQuery('.waitingImage').show();
+            jQuery('.drilldown-btn').hide();
+        }
+    </script>
+    
+    <script type="text/javascript">
+        function checkAll(cb,cbid) {
+            var inputElem = document.getElementsByTagName("input");                     
+            for(var i=0; i<inputElem.length; i++) {             
+                if(inputElem[i].id.indexOf(cbid)!=-1) {
+                    inputElem[i].checked = cb.checked;
+                }
+            }
+        }
+    </script>
+    
+    <apex:form >
+        <!-- PANEL CONTAINER -->
+        <div class="panelContainer">
+            <!-- LEFT PANEL -->
+            <apex:outputPanel id="leftPanel" layout="block" styleClass="leftPanel" >
+                <apex:outputPanel id="adUnitBlock" layout="block" styleClass="adUnitBlock" rendered="{!editMode && editable }" >                 
+                    <table class="adUnitBlock-table">
+                        <tr class="adUnitBlock-header">
+                            <td class="plusCol">
+                                <span class="back">
+                                    <apex:commandLink value="« Indietro" action="{!init}" rendered="{!drillDownLevel > 0}" rerender="leftPanel, viewInventoryTarget-header" onclick="disableButtons();">
+                                        <apex:param assignTo="{!drillDownLevel}" name="drillDownLevel" value="{!drillDownLevel - 1}"/>
+                                        <apex:param assignTo="{!parentId}" name="parentId" value="{! IF(NOT(ISBLANK(parentId)), allAdUnits[parentId].parentAdunit__c,'') }"/>
+                                    </apex:commandLink>
+                                </span>
+                                <img class="waitingImage" src="/img/loading.gif" title="Please Wait..." style="display:none;"/>
+                            </td>
+                            <td class="nameCol">
+                                <span class="parent">
+                                    <apex:outputText rendered="{!drillDownLevel > 0}" value="{!allAdUnits[parentId].path__c}"/>
+                                </span>    
+                            </td>
+                            <td class="includeCol">
+                                <apex:commandButton action="{!includeAdUnitBatch}" value="Includi" rendered="{!includeMode}" reRender="leftPanel, rightPanel" onclick="disableButtons();"/>
+                                <apex:inputCheckbox onclick="checkAll(this,'checkedone-incl')"/>
+                            </td>
+                            <td class="excludeCol">
+                                <apex:commandButton action="{!excludeAdUnitBatch}" value="Escludi" rendered="{!excludeMode}" reRender="leftPanel, rightPanel" onclick="disableButtons();"/>
+                                <apex:inputCheckbox onclick="checkAll(this,'checkedone-excl')"/>
+                            </td>
+                        </tr>    
+                        <apex:repeat value="{!adUnitsWrap}" var="adUnitWrap">
+                            <tr>
+                                <td class="plusCol">
+                                    <apex:commandLink action="{!init}" styleClass="iconStatus drilldown-btn" rendered="{!adUnitWrap.children > 0}" rerender="leftPanel, viewInventoryTarget-header" onclick="disableButtons();">
+                                        <apex:image value="{!$Resource.drilldown}" title="drill down" />
+                                        <apex:param assignTo="{!drillDownLevel}" name="drillDownLevel" value="{!drillDownLevel + 1}"/>
+                                        <apex:param assignTo="{!parentId}" name="parentId" value="{!adUnitWrap.adUnit}"/>                        
+                                    </apex:commandLink>                    
+                                    
+                                </td>
+                                <td class="nameCol"> 
+                                    <apex:outputText rendered="{!drillDownLevel > 0}" value="{!allAdUnits[adUnitWrap.adUnit].Name}" /> 
+                                    <apex:outputText rendered="{!drillDownLevel = 0}" value="{!'Ad units'}"/>
+                                    
+                                    <!-- DEBUG -->
+                                    <!--<apex:outputPanel rendered="false">
+                                        DEBUG:<br/>
+                                        excludedRender: {!excludedRender[adUnitWrap.adUnit.id]}<br/>
+                                        excludeMode: {!excludeMode}<br/>
+                                        drillDownLevel: {!$CurrentPage.parameters.drillDownLevel == '0'}<br/>
+                                    </apex:outputPanel> -->
+                                    <!----------->
+                                    
+                                    <!--<apex:outputText rendered="true">
+                                        <br />
+                                        showAdUnitFormula = {!adUnitWrap.adUnit.showAdUnitFormula__c} <br />
+                                        sizes = {!CONTAINS( adunitsSizes[adUnitWrap.adUnit.id],',' + filterSize + ',')}<br />
+                                        canalePrimario = {!CONTAINS(adUnitsCanali[adUnitWrap.adUnit.id], ';'&filterCanalePrimario&';' ) || filterCanalePrimario == '' } <br />
+                                        drillDownLevel = {!drillDownLevel == 0} <br />
+                                    </apex:outputText> -->
+                                    
+                                </td>                           
+                                <td class="includeCol">                               
+                                    <apex:inputCheckbox id="checkedone-incl" value="{!adUnitWrap.includeSelected}" rendered="{!includedRender[adUnitWrap.adUnit] && includeMode && (maxIncludes == -1 || inventoryTargetsIncludedSize < maxIncludes) && (filterCanalePrimario == '' || CONTAINS(allAdUnits[adUnitWrap.adUnit].CanalePrimario__c, filterCanalePrimario))}"/>                      
+                                </td>
+                                <td class="excludeCol">
+                                    <apex:inputCheckbox id="checkedone-excl" value="{!adUnitWrap.excludeSelected}" rendered="{!excludedRender[adUnitWrap.adUnit] && excludeMode && (filterCanalePrimario == '' || CONTAINS(allAdUnits[adUnitWrap.adUnit].CanalePrimario__c, filterCanalePrimario))}"/>
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                    </table>           
+                </apex:outputPanel>
+            </apex:outputPanel>
+            <!-- FINE LEFT PANEL -->
+            
+            <!-- RIGHT PANEL -->
+            <apex:outputPanel id="rightPanel" layout="block" styleClass="rightPanel">
+                <apex:outputPanel id="viewInventoryTarget" layout="block" styleClass="viewInventoryTarget">
+                    <apex:outputPanel id="viewInventoryTarget-header" styleClass="viewInventoryTarget-header" layout="block">
+                        <apex:commandButton action="{!removeInventoryTargetBatch}" value="Rimuovi" style="align:text-right" onclick="disableButtons();" reRender="leftPanel, rightPanel"/>
+                        <apex:inputCheckbox onclick="checkAll(this,'checkedone-remove')" style="text-align:right"/>
+                    </apex:outputPanel>
+                    <!-- Tree -->
+                    <ul id="viewInventoryTarget">
+                        <li>
+                            <ul>                            
+                                <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsIncludedString,'_' & rootAdUnitWrapper.adUnit & '_')}"  value="/img/permissions_confirm16.gif" title="Included" />
+                                <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsExcludedString,'_' & rootAdUnitWrapper.adUnit & '_')}" value="/img/permissions_deny16.gif" title="Excluded" />                    
+                                <apex:outputText value="{!'Ad units'}"/>
+                                <apex:inputCheckbox id="checkedone-remove" value="{!rootAdUnitWrapper.includeSelected}" rendered="{!(CONTAINS(inventoryTargetsIncludedString,'_' & rootAdUnitWrapper.adUnit & '_') || CONTAINS(inventoryTargetsExcludedString,'_' & rootAdUnitWrapper.adUnit & '_')) && allInventoryTarget[rootAdUnitWrapper.adUnit]}"/>
+                                
+                                <!-- Primo Repeat -->
+                                <apex:repeat rendered="{!renderAdUnit[rootAdUnitWrapper.adUnit]}" value="{!adUnitWrapperMap[rootAdUnitWrapper.adUnit]}" var="inventoryLevel1" id="theRepeat">
+                                    <apex:outputText rendered="{!renderAdUnit[inventoryLevel1.adUnit]}">
+                                        <li>                  
+                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel1.adUnit & '_')}" value="/img/permissions_confirm16.gif" title="Included" />
+                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel1.adUnit & '_')}" value="/img/permissions_deny16.gif" title="Excluded" />
+                                            <apex:outputText value="{!allAdUnits[inventoryLevel1.adUnit].name}"/>
+                                            <apex:inputCheckbox id="checkedone-remove" value="{!inventoryLevel1.includeSelected}" rendered="{!editMode && (CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel1.adUnit & '_') || CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel1.adUnit & '_') && allInventoryTarget[inventoryLevel1.adUnit]) && editable}"/>
+                                            <ul>
+                                                <!-- Secondo Repeat -->
+                                                <apex:repeat rendered="{!renderAdUnit[inventoryLevel1.adUnit]}" value="{!adUnitWrapperMap[inventoryLevel1.adUnit]}" var="inventoryLevel2">
+                                                    <apex:outputText rendered="{!renderAdUnit[inventoryLevel2.adUnit]}">                                  
+                                                        <li>                                       
+                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel2.adUnit & '_')}" value="/img/permissions_confirm16.gif" title="Included" />
+                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel2.adUnit & '_')}" value="/img/permissions_deny16.gif" title="Excluded" />
+                                                            <apex:outputText value="{!allAdUnits[inventoryLevel2.adUnit].name}"/>
+                                                            <apex:inputCheckbox id="checkedone-remove" value="{!inventoryLevel2.includeSelected}" rendered="{!editMode && (CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel2.adUnit & '_') || CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel2.adUnit & '_') && allInventoryTarget[inventoryLevel2.adUnit]) && editable}"/>
+                                                            <ul>
+                                                                <!-- Terzo Repeat -->
+                                                                <apex:repeat value="{!adUnitWrapperMap[inventoryLevel2.adUnit]}" var="inventoryLevel3">
+                                                                    <apex:outputText rendered="{!renderAdUnit[inventoryLevel3.adUnit]}">  
+                                                                        <li>
+                                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel3.adUnit & '_')}" value="/img/permissions_confirm16.gif" title="Included"/>
+                                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel3.adUnit & '_')}" value="/img/permissions_deny16.gif" title="Excluded" />
+                                                                            <apex:outputText value="{!allAdUnits[inventoryLevel3.adUnit].name}" />
+                                                                            <apex:inputCheckbox id="checkedone-remove" value="{!inventoryLevel3.includeSelected}" rendered="{!editMode && (CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel3.adUnit & '_') || CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel3.adUnit & '_') && allInventoryTarget[inventoryLevel3.adUnit]) && editable }"/>
+                                                                            <ul>
+                                                                                <!-- Quarto Repeat -->
+                                                                                <apex:repeat value="{!adUnitWrapperMap[inventoryLevel3.adUnit]}" var="inventoryLevel4">
+                                                                                    <apex:outputText rendered="{!renderAdUnit[inventoryLevel4.adUnit]}">  
+                                                                                        <li>
+                                                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel4.adUnit & '_')}" value="/img/permissions_confirm16.gif" title="Included"/>
+                                                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel4.adUnit & '_')}" value="/img/permissions_deny16.gif" title="Excluded" />
+                                                                                            <apex:outputText value="{!allAdUnits[inventoryLevel4.adUnit].name}" />
+                                                                                            <apex:inputCheckbox id="checkedone-remove" value="{!inventoryLevel4.includeSelected}" rendered="{!editMode && (CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel4.adUnit & '_') || CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel4.adUnit & '_') && allInventoryTarget[inventoryLevel4.adUnit]) && editable }"/>
+                                                                                            <ul>
+                                                                                                <!-- Quinto Repeat -->
+                                                                                                <apex:repeat value="{!adUnitWrapperMap[inventoryLevel4.adUnit]}" var="inventoryLevel5">
+                                                                                                    <apex:outputText rendered="{!renderAdUnit[inventoryLevel5.adUnit]}">  
+                                                                                                        <li>
+                                                                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel5.adUnit & '_')}" value="/img/permissions_confirm16.gif" title="Included"/>
+                                                                                                            <apex:image styleClass="iconStatus" rendered="{!CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel5.adUnit & '_')}" value="/img/permissions_deny16.gif" title="Excluded" />
+                                                                                                            <apex:outputText value="{!allAdUnits[inventoryLevel5.adUnit].name}" />
+                                                                                                            <apex:inputCheckbox id="checkedone-remove" value="{!inventoryLevel5.includeSelected}" rendered="{!editMode && (CONTAINS(inventoryTargetsIncludedString,'_' & inventoryLevel5.adUnit & '_') || CONTAINS(inventoryTargetsExcludedString,'_' & inventoryLevel5.adUnit & '_') && allInventoryTarget[inventoryLevel5.adUnit]) && editable }"/>
+                                                                                                        </li>
+                                                                                                    </apex:outputText>
+                                                                                                </apex:repeat>
+                                                                                                <!-- Fine quinto repeat -->
+                                                                                                
+                                                                                            </ul>
+                                                                                        </li>
+                                                                                    </apex:outputText>
+                                                                                </apex:repeat>
+                                                                                <!-- Fine quarto repeat -->
+                                                                                 
+                                                                            </ul>
+                                                                        </li>
+                                                                    </apex:outputText>
+                                                                </apex:repeat>
+                                                                <!-- Fine terzo repeat -->
+                                                                
+                                                            </ul>
+                                                        </li>
+                                                    </apex:outputText>
+                                                </apex:repeat>
+                                                <!-- Fine secondo repeat -->
+                                                
+                                            </ul>
+                                        </li>
+                                    </apex:outputText>
+                                </apex:repeat>
+                                <!-- Fine primo repeat -->
+                                
+                            </ul>
+                        </li>
+                    </ul>
+                    <!-- Fine Tree -->
+                    
+                </apex:outputPanel>
+                <script>       
+                    jQuery('#viewInventoryTarget').treeview();
+                </script>
+            </apex:outputPanel>
+            <!-- FINE RIGHT PANEL -->
+       
+            <div style="clear:both;" />
+        </div>
+        <!-- PANEL CONTAINER -->
+        
+    </apex:form>
+</apex:component>

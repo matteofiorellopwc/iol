@@ -1,0 +1,43 @@
+<apex:page standardController="OpportunityLineItem" extensions="testForecastExtension">
+    <apex:outputfield rendered="false" value="{!OpportunityLineItem.Id_DFP__c}" />
+    <apex:form >
+        <apex:commandButton value="controlla disponibilità" action="{!CheckAvailability}" onclick="document.getElementById('loading').style.display='';" reRender="disponibilita"/>
+        <br />
+        <apex:pageblock id="disponibilita" mode="maindetail">
+            <apex:pageBlockSection collapsible="false">
+              <apex:pageblockSectionItem >
+                  <div id="loading" style="display:none;" >Richiesta forecast... <img src="/img/loading32.gif" style="width:15px;" /></div>
+              </apex:pageblockSectionItem>
+              <apex:pageblockSectionItem >
+                  <apex:outputText >unitType</apex:outputText>
+                  <apex:outputText >{!f.unitType}</apex:outputText>
+              </apex:pageblockSectionItem>
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >matchedUnits</apex:outputText>
+                  <apex:outputText >{!f.matchedUnits}</apex:outputText>
+              </apex:pageBlockSectionItem>
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >deliveredUnits</apex:outputText>
+                  <apex:outputText >{!f.deliveredUnits}</apex:outputText>
+              </apex:pageBlockSectionItem>   
+               <apex:pageBlockSectionItem >
+                  <apex:outputText >possibleUnits </apex:outputText>
+                  <apex:outputText >{!f.possibleUnits}</apex:outputText>
+              </apex:pageBlockSectionItem>              
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >reservedUnits </apex:outputText>
+                  <apex:outputText >{!f.reservedUnits}</apex:outputText>
+             </apex:pageBlockSectionItem>                
+                                       
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >availableUnits</apex:outputText>
+                  <apex:outputText >{!f.availableUnits}</apex:outputText>
+              </apex:pageBlockSectionItem>
+
+
+                                         
+            
+            </apex:pageBlockSection>
+        </apex:pageblock>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,19 @@
+<apex:page >
+    <style>
+        .conf-prod-grid {
+            font-size: 1.2em;
+            border-spacing: 5px;
+        }
+    </style>
+    <apex:sectionHeader subtitle="Configurazione prodotti"/>
+    <apex:pageBlock >
+        <apex:panelGrid columns="1" styleClass="conf-prod-grid">
+            <apex:panelGroup >
+                &nbsp;<apex:outputLink value="/apex/ViewMultiReportMatriceGeneric?id1=00O20000005IO1W&id2=00O20000005IO1l">ViewMultiReportOppCreateVinteDIR</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                &nbsp;<apex:outputLink value="/apex/ViewMultiReportMatriceGeneric?id1=00O20000005IO1C&id2=00O20000005IO0Y">ViewMultiReportOppVinteCM</apex:outputLink>
+            </apex:panelGroup>
+        </apex:panelGrid>
+    </apex:pageBlock>
+</apex:page>

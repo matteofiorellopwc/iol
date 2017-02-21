@@ -1,0 +1,79 @@
+<apex:component allowDML="true" controller="ControllerDayPartTargeting" >
+    
+  <apex:variable var="editMode" value="{!$CurrentPage.parameters.editMode == 'true'}" />
+  <apex:variable var="editable" value="{!$CurrentPage.parameters.editable != 'false'}" />
+<apex:form >
+	<apex:pageMessages />
+    <apex:pageBlock id="dayPartTable" >
+    
+            <apex:pageBlockButtons rendered="{!editable}" >
+               <apex:outputText rendered="{!NOT(editMode)}">
+                <input type="button" value="edit" onclick="window.location.href = window.location.href + '&editmode=true'" />
+               </apex:outputText>
+                <apex:commandButton rendered="{!editMode}" action="{!customSave}" value="save"/>
+            </apex:pageBlockButtons>
+
+            <apex:pageBlockSection columns="1" >
+                <apex:pageBlockSectionItem rendered="{!editMode && editable}" >
+                     <apex:outputText >{!$ObjectType.LineItem__c.fields.TimeZoneDay__c.label}</apex:outputText>
+                     <apex:outputText >
+                        <div class="requiredInput">
+                                    <div class="requiredBlock" />
+                        <apex:selectList value="{!obj['TimeZoneDay__c']}" size="1" onchange="rerenderTableJs();">
+                            <apex:selectOptions value="{!TimeZoneDays}"/>
+                        </apex:selectList>
+                        </div>
+                     </apex:outputText>
+                </apex:pageBlockSectionItem>
+                 <apex:pageBlockSectionItem rendered="{!editMode && editable}">
+                 <apex:outputText >{!$ObjectType.LineItem__c.fields.Day_Part_Targeting_Type__c.label}</apex:outputText>
+                    <apex:outputText >
+                        <div class="requiredInput">
+                            <div class="requiredBlock" />
+                            <apex:selectList value="{!obj['Day_Part_Targeting_Type__c']}" size="1" onchange="rerenderTableJs();">
+                                <apex:selectOptions value="{!DayTargetingTypes}"/>
+                            </apex:selectList>
+                        </div>
+                     </apex:outputText>
+                </apex:pageBlockSectionItem>              
+                <apex:pageBlockSectionItem >
+                    <apex:outputPanel ><span style="display:none;" id="loading_span">Loading...</span></apex:outputPanel>
+                    <apex:outputPanel ><img src="/img/loading32.gif" id="loading_img" style="display:none;width:20px;" /></apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                <apex:outputField rendered="{!NOT(editMode)}" value="{!obj['TimeZoneDay__c']}" />
+                <apex:outputField rendered="{!NOT(editMode)}" value="{!obj['Day_Part_Targeting_Type__c']}" />
+            </apex:pageBlockSection>
+            <script>
+                function rerenderTableJs(){
+                    document.getElementById('loading_span').style.display = '';
+                    document.getElementById('loading_img').style.display = '';                    
+                    rerenderTable();
+                }
+            </script>
+            <apex:actionFunction name="rerenderTable" rerender="dayPartTable"/>
+            
+            <apex:outputPanel >
+                <apex:pageBlockTable rendered="{!obj['Day_Part_Targeting_Type__c'] != 'Bands'}" value="{!allDayParts}" var="adp">
+                    <apex:column headerValue="Day" id="dayOfWeek" value="{!adp.dayOfWeek}"/>
+                    <apex:repeat value="{!i24}" var="i">
+                        <apex:column headerValue="{!TEXT(i)&'-'&TEXT(i+1)}">
+                            <apex:inputCheckbox value="{!adp.listDp[i].checked}" disabled="{!NOT(editMode)}" />
+                        </apex:column>
+                    </apex:repeat>        
+                </apex:pageBlockTable>
+                
+                
+                <apex:pageBlockTable rendered="{!obj['Day_Part_Targeting_Type__c'] = 'Bands'}" style="width:450px;" value="{!allDayBandParts}" var="adp">
+                    <apex:column headerValue="Day" id="dayOfWeek" value="{!adp.dayOfWeek}"/>
+                    <apex:repeat value="{!i3}" var="i">
+                        <apex:column headerValue="{!dayband[i][0]&'-'&dayband[i][1]}"> 
+                            <apex:inputCheckbox value="{!adp.listDp[i].checked}" disabled="{!NOT(editMode)}"/>
+                        </apex:column>
+                    </apex:repeat>        
+                </apex:pageBlockTable>            
+            </apex:outputPanel>                
+        
+      </apex:pageBlock>
+</apex:form>        
+</apex:component>

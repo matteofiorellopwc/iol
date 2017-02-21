@@ -1,0 +1,840 @@
+<apex:component allowDML="true" controller="ControllerTechnologyTargeting" >
+    <style>
+        .main_container {
+            cursor: pointer;
+        }
+        .element {
+            background-color: #A1C4FC;
+            color: black;
+            width: 49px;
+            padding: 1px 5px 1px 5px;
+        }
+        .element:hover {
+            background-color: #5997FA;
+        }
+        .selected {
+            border: 1px solid #407DE0;
+            background-color: #5997FA;
+            padding: 1px 5px 1px 5px;
+
+        }
+        .options {
+            display: none;
+            position: absolute;
+        }    
+    
+        .pbSubheader {
+            color: black !important;
+        }
+        
+        .included{
+            background-image: url("/img/permissions_confirm16.gif");
+            background-position: right center;
+            background-repeat: no-repeat;
+            color: #0a0;
+            padding-right: 20px;
+        }
+        
+        .excluded{
+            background-image: url("/img/permissions_deny16.gif");
+            background-position: right center;
+            background-repeat: no-repeat;
+            padding-right: 20px;        
+            color: #f00;        
+        }
+        
+        .selectable{
+            cursor: pointer;
+        }
+        
+        .notSelectable{
+            color: #ccc;
+        }   
+        
+        input[type="checkbox"]{
+            display:none;
+        }     
+    </style>
+
+    <script>
+        j_tech$ = jQuery.noConflict();
+        
+        function setValueCheckBox(val, checkBoxClass) {
+            j_tech$('input[id$="isTargeted"]').prop("checked",val);
+            j_tech$('input.'+checkBoxClass).prop("checked", true);
+            j_tech$('input.'+checkBoxClass).change();
+            j_tech$('.options').hide();
+
+            rerenderIncludeExclude();
+        }
+
+        function rerenderIncludeExclude(){
+            j_tech$('.main_container').hide();
+            j_tech$('.includeExclude').hide();
+
+            var isTargeted = j_tech$('input[id$="isTargeted"]').is(':checked');
+
+            j_tech$('.includeExclude').each(function(){
+                var isChecked = j_tech$(this).next().is(':checked');
+                var isSubVersion = j_tech$(this).hasClass('subversion');
+                var isVersionChecked = isSubVersion && j_tech$('input.'+j_tech$(this).attr('version')).is(':checked');
+
+                j_tech$(this).removeClass('included');
+                j_tech$(this).removeClass('excluded');
+                j_tech$(this).removeClass('selectable');
+                j_tech$(this).removeClass('notSelectable');                                                
+
+                if(!isSubVersion || !isVersionChecked){
+                
+                    if(isTargeted && !isChecked){
+                        j_tech$(this).html('include');
+                        j_tech$(this).addClass('selectable');
+                    }
+    
+                    if(!isTargeted && !isChecked){
+                        j_tech$(this).html('exclude');
+                        j_tech$(this).addClass('selectable');
+                    }
+    
+                    if(isTargeted && isChecked){
+                        j_tech$(this).html('included');
+                        j_tech$(this).addClass('included');
+                        j_tech$(this).addClass('selectable');
+                    }
+    
+                    if(!isTargeted && isChecked){
+                        j_tech$(this).html('excluded');
+                        j_tech$(this).addClass('excluded');
+                        j_tech$(this).addClass('selectable');                        
+                    }                
+                }else{
+                    if(isTargeted && isChecked){
+                        j_tech$(this).html('exclude');
+                        j_tech$(this).addClass('included');
+                        j_tech$(this).addClass('selectable');
+                    }
+                    if(isTargeted && !isChecked){
+                        j_tech$(this).html('excluded');
+                        j_tech$(this).addClass('excluded');
+                        j_tech$(this).addClass('selectable');
+                    }  
+                    if(!isTargeted && isChecked){ //non puoi includerlo
+                        j_tech$(this).html('excluded');
+                        j_tech$(this).addClass('excluded');
+                        j_tech$(this).addClass('notSelectable');                        
+                    }
+    
+                    if(!isTargeted && !isChecked){ //--> non può succedere
+
+                    }                                                                    
+                }
+
+            });
+
+            if(j_tech$('.tecTable input:checked').length > 0){
+                j_tech$('.includeExclude').show();
+            }else{
+                j_tech$('.main_container').show();
+            }
+        }
+
+        function toggleCheckbox(styleCheckbox){
+            console.log(j_tech$('input.'+styleCheckbox));
+
+            j_tech$('input.'+styleCheckbox).each(function(){
+                j_tech$(this).prop("checked", !j_tech$(this).prop("checked"));
+                j_tech$(this).change();             
+            });
+            
+            rerenderIncludeExclude();
+        }
+
+        function showOptions(currNode) {
+            var nextNode = currNode.next(".options");
+            if (nextNode.is(":visible")) {
+                nextNode.hide();
+            } else {
+                nextNode.show();
+            }
+        }
+        
+        function showTableVersions(opSysId){
+            hideAllTableVersions();
+            j_tech$('#tableVersion'+opSysId).show();
+        }
+        function hideAllTableVersions(){
+            j_tech$('.tableVersion').hide();
+        }
+        
+        function checkVersions(check,opSysId){
+            if(check.checked){
+                j_tech$('.version'+opSysId).attr('checked','checked');
+            }else{
+                j_tech$('.version'+opSysId).removeAttr('checked');
+            }
+            
+            rerenderIncludeExclude();
+        }
+        function checkVersion(check,opSysId){
+            var isTargeted = j_tech$('input[id$="isTargeted"]').is(':checked');
+           
+            var opSysChecked = false;
+            j_tech$('.'+opSysId).each(function(){
+                opSysChecked = this.checked;
+            });
+            var isChecked = check.checked;
+            
+            var s = '';
+            s += 'isTargeted='+isTargeted+'\n';
+            s += 'opSysChecked='+opSysChecked+'\n';
+            s += 'isChecked='+isChecked+'\n';                                        
+            
+            if(!isTargeted && opSysChecked){
+                
+                j_tech$(check).attr('checked','checked');
+            }
+        }
+/*        function resetCheckbox(){
+            j_tech$('input:checkbox').removeAttr('checked');
+        }        */
+
+    </script>
+<!-- END - INCLUDE EXLUDE TOGGLE -->
+
+ <apex:variable var="editMode" value="{!$CurrentPage.parameters.editMode == 'true'}" />
+ <apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+<apex:form >
+        
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+
+    <apex:pageMessages escape="false"></apex:pageMessages>
+
+    <apex:actionFunction name="editJs" action="{!editTechnoTarget}" reRender="tableTech,editPageBlockTech">
+        <apex:param name="editTec" value="" assignTo="{!editTec}" />
+    </apex:actionFunction>
+    <apex:actionFunction name="resetJs" action="{!resetTechnoTarget}" reRender="tableTech,editPageBlockTech">
+        <apex:param name="editTec" value="" assignTo="{!editTec}" />
+    </apex:actionFunction>    
+    
+<!-- GROUP PANEL -->
+    <apex:pageBlock title="Avaiable Groups" rendered="{!LOWER(sobjectName) = 'product__c'}">
+        <apex:pageBlockButtons location="bottom">
+            <apex:commandButton value="Save" action="{!saveGroupConfiguration}" />
+        </apex:pageBlockButtons>               
+        <apex:inputField value="{!p.Gruppi_Technology_Target_LI__c}" />                
+    </apex:pageBlock>
+
+<!-- left panel -->    
+    <apex:outputPanel style="float:left;width: 450px;" layout="block" id="tableTech">
+        <script>
+            j_tech$(document).ready(function(){
+                rerenderIncludeExclude();
+            });
+        </script>
+        <apex:pageBlock >
+            <apex:pageBlockButtons rendered="{!editable}" >
+             <apex:outputText rendered="{!NOT(editMode)}">
+                <input type="button" value="edit" onclick="window.location.href = window.location.href + '&editmode=true'" />
+               </apex:outputText>
+               <apex:commandButton rendered="{!editMode}" action="{!customSave}" value="save"/>
+                
+            </apex:pageBlockButtons>          
+            <apex:repeat value="{!techoTargetMap}" var="ttm" >
+                <apex:variable var="ttmLabel" value="{!SUBSTITUTE(ttm,'_',' ')}" />
+                <apex:variable var="isProduct" value="{!LOWER(sobjectName) = 'product__c'}" />
+                <apex:variable var="isGroupContained" value="{!AND(NOT(ISBLANK(p.Gruppi_Technology_Target_LI__c)), mapTechKeyIsAddedInGroup[ttm])}" />
+                <apex:variable var="isGroupValued" value="{!NOT(ISBLANK(techoTargetMap[ttm].valueIds__c))}" />
+
+                <apex:pageBlockSection title="{!ttmLabel}" rendered="{!OR(isProduct, isGroupContained, isGroupValued)}">
+                
+                    <apex:outputText rendered="{!editMode && editable && (isGroupContained || isProduct)}" >
+                        <a style="cursor:pointer;" onclick="editJs('{!ttm}');">edit</a> &nbsp;|&nbsp;
+                        <a style="cursor:pointer;" onclick="resetJs('{!ttm}');">reset {!ttm}</a> &nbsp;|&nbsp;
+                    </apex:outputText>
+                    <br />
+                    
+                    <apex:pageBlockSectionItem rendered="{!AND(NOT(ISBLANK(techoTargetMap[ttm].valueIds__c)),ttm != 'Browser')}" >
+                        <apex:outputText >{!IF(techoTargetMap[ttm].isTargeted__c,'Targeted','Excluded')}</apex:outputText>
+                        <apex:outputText value="{!SUBSTITUTE(techoTargetMap[ttm].values__c,',','<br/>')}" escape="false" />
+                    </apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem rendered="{!AND(OR(NOT(ISBLANK(BrowserVersionIncluded.valueIds__c)),NOT(ISBLANK(BrowserVersionExcluded.valueIds__c))),ttm = 'Browser')}" >
+                        <apex:outputText >{!IF(techoTargetMap[ttm].isTargeted__c,'Targeted','Excluded')}</apex:outputText>
+                        <apex:outputText value="{!IF(BrowserVersionIncluded.valueIds__c <> '',SUBSTITUTE(BrowserVersionIncluded.Values__c,',','<br/>'),IF(BrowserVersionExcluded.valueIds__c <> '',SUBSTITUTE(BrowserVersionExcluded.Values__c,',','<br/>'),''))}" escape="false" />
+                    </apex:pageBlockSectionItem>
+
+                    <apex:pageBlockSectionItem rendered="{!OperatingSystemVersionIncluded.valueIds__c <> ''}"></apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem rendered="{!AND(OperatingSystemVersionIncluded.valueIds__c <> '',ttm = 'Operating_System')}" >
+                        <apex:outputText >Version Targeted</apex:outputText>
+                        <apex:outputText value="{!SUBSTITUTE(OperatingSystemVersionIncluded.Values__c,',','<br/>')}" escape="false" />
+                    </apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem rendered="{!OperatingSystemVersionExcluded.valueIds__c <> ''}"></apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem rendered="{!AND(OperatingSystemVersionExcluded.valueIds__c <> '',ttm = 'Operating_System')}" >
+                        <apex:outputText >Version Excluded</apex:outputText>
+                        <apex:outputText value="{!SUBSTITUTE(OperatingSystemVersionExcluded.Values__c,',','<br/>')}" escape="false" />
+                    </apex:pageBlockSectionItem>
+                </apex:pageBlockSection>
+            </apex:repeat>
+        </apex:pageBlock>
+    </apex:outputPanel>
+    
+
+<!-- end left panel -->     
+    
+    
+    <apex:outputPanel style="float:left;" layout="block" id="editPageBlockTech">    
+        <apex:pageBlock mode="edit" rendered="{!NOT(ISBLANK(techoTarget))}" >
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton value="save" action="{!saveTec}" reRender="tableTech,editPageBlockTech" /> 
+            </apex:pageBlockButtons>
+            <!--
+            <apex:pageBlockSection columns="1">
+                <apex:outputField value="{!techoTarget.Type__c}" />
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >
+                        
+                     
+                        <div class="main_container">
+                            <img src="/img/search_dismiss.gif" style="display: none;" />
+                            <div class="selected" onclick="showOptions(j_tech$(this));">include ▼</div>
+                            <div class="options">
+                                <div class="element" onclick="setValue('true', j_tech$(this));">include</div>
+                                <div class="element" onclick="setValue('false', j_tech$(this));">exclude</div>
+                            </div>
+                        </div>
+                         
+
+                    </apex:outputText>
+                    <apex:selectRadio id="isTargeted__c" onchange="resetCheckbox();" value="{!techoTarget.isTargeted__c}">
+                        <apex:selectOptions value="{!TrueFalse}" /> 
+                    </apex:selectRadio>
+                </apex:pageBlockSectionItem>
+                
+            </apex:pageBlockSection>
+            -->
+            <apex:inputCheckbox value="{!techoTarget.isTargeted__c}" id="isTargeted" />
+        </apex:pageBlock>
+        <div>
+            <div style="float:left;">
+                <apex:pageBlock id="selectCheckboxes" rendered="{!NOT(ISBLANK(techoTarget))}">
+                    <img id="loading" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                    <apex:outputText rendered="{!queryUtil.ii != ''}">
+                        <table cellpadding="10" id="tectable" class="tecTable">
+                            <thead>
+                                <tr>
+                                    <th id="checkth"></th>
+                                    <apex:repeat value="{!queryUtil.columnTypes}" var="ct">
+                                        <apex:outputText rendered="{!ct != 'id' && ct != 'majorversion' && ct != 'minorversion' && ct != 'microversion'}">
+                                            <th>{!ct}</th>
+                                         </apex:outputText>
+                                        <apex:outputText rendered="{!ct == 'majorversion'}">
+                                            <th>Version</th>
+                                         </apex:outputText>
+                                    </apex:repeat>        
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <apex:repeat value="{!queryUtil.ii}" var="i">
+                                    <tr>
+                                        <td>
+                                            <!-- BEGIN - INCLUDE/EXCLUDE TOGGLE -->
+                                            <div class="main_container"> 
+                                                <apex:outputText rendered="{!IF(CONTAINS(browserParent,queryUtil.table['id'][i].value), false, true)}" >
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!queryUtil.table['id'][i].value}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!queryUtil.table['id'][i].value}')">exclude</div>
+                                                    </div>
+                                                </apex:outputText>
+                                            </div>
+                                            <!-- END - INCLUDE/EXCLUDE TOGGLE -->  
+                                            <apex:outputText rendered="{!IF(CONTAINS(browserParent,queryUtil.table['id'][i].value), false, true)}" >                                            
+                                            <div class="includeExclude {!queryUtil.table['id'][i].value}" onclick="toggleCheckbox('{!queryUtil.table['id'][i].value}');" isParentOperatingSystem="{!CONTAINS(operatingSystemParent,queryUtil.table['id'][i].value)}" />
+                                            </apex:outputText>
+                                            <apex:outputText rendered="{!IF(CONTAINS(operatingSystemParent,queryUtil.table['id'][i].value), true, false)}" >
+                                                <apex:inputCheckbox styleClass="{!queryUtil.table['id'][i].value}" 
+                                                    onchange="if({!IF(CONTAINS(operatingSystemParent,queryUtil.table['id'][i].value), 'true', 'false')}){checkVersions(this,'{!queryUtil.table['id'][i].value}');}" value="{!selectedValues[i].checked}"
+                                                />
+                                            </apex:outputText>
+
+
+
+                                            <apex:outputText rendered="{!IF(CONTAINS(browserParent,queryUtil.table['id'][i].value), false, IF(CONTAINS(operatingSystemParent,queryUtil.table['id'][i].value), false, true))}" >
+                                                <apex:inputCheckbox styleClass="{!queryUtil.table['id'][i].value}" value="{!selectedValues[i].checked}"
+                                                />
+                                            </apex:outputText>
+                                            
+                                        </td>
+                                        <apex:repeat value="{!queryUtil.columnTypes}" var="ct">
+                                            <apex:outputText rendered="{!ct != 'id' && ct != 'operatingsystemid' && ct != 'majorversion' && ct != 'minorversion' && ct != 'microversion'}">
+                                               <td>
+                                                   <apex:outputText rendered="{!OR(AND(techoTarget.Type__c = 'Operating_System',CONTAINS(operatingSystemParent,queryUtil.table['id'][i].value)),AND(techoTarget.Type__c = 'Browser',CONTAINS(browserParent,queryUtil.table['id'][i].value)))}">
+                                                      <a style="text-decoration:underline;" onclick="showTableVersions('_{!techoTarget.Type__c}_{!IF(techoTarget.Type__c = 'Operating_System',queryUtil.table['id'][i].value,SUBSTITUTE(queryUtil.table['browsername'][i].value,' ',''))}');">
+                                                          {!queryUtil.table[ct][i].value} ->
+                                                      </a> 
+                                                   </apex:outputText>
+
+                                                   <apex:outputText rendered="{!AND(NOT(IF(CONTAINS(operatingSystemParent,queryUtil.table['id'][i].value),true,false)),NOT(IF(CONTAINS(browserParent,queryUtil.table['id'][i].value),true,false)))}">
+                                                       {!queryUtil.table[ct][i].value}
+                                                   </apex:outputText>
+                                               </td>
+                                            </apex:outputText>
+                                            <apex:outputText rendered="{!ct == 'majorversion'}">
+                                                <td>
+                                                    {!queryUtil.table[ct][i].value}.{!queryUtil.table['minorversion'][i].value}
+                                                </td>
+                                            </apex:outputText>
+                                            
+                                            <apex:outputText rendered="{!ct == 'operatingsystemid'}">
+                                                <td>
+                                                    {!operating_system_name[queryUtil.table[ct][i].value]}
+                                                </td>
+                                            </apex:outputText>
+                                        </apex:repeat>                            
+                                    </tr>                    
+                                </apex:repeat>
+                            </tbody>
+                        </table>
+                    </apex:outputText>
+                </apex:pageBlock>
+            </div>
+
+            <style>
+                .tableVersion{
+                    display: none;
+                }
+            </style>
+
+            <apex:outputText rendered="{!techoTarget.Type__c = 'Operating_System'}">         
+                <div style="float:left;" >
+                        <div id="tableVersion_Operating_System_501012" class="tableVersion">
+                            <apex:pageBlock >
+                                <table cellpadding="10" class="tecTable" >
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>iOS versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                         <apex:repeat value="{!operatingSystemVersionMap['501012']}" var="v">
+                                             <tr>
+                                                <td>
+                                                    <div class="main_container"> 
+                                                        <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                        <div class="options">
+                                                            <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                            <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                        </div>
+                                                    </div> 
+                                                    <div class="includeExclude subversion" version="501012" onclick="toggleCheckbox('{!v.Id}');" />
+                                                    <apex:inputCheckbox onchange="checkVersion(this,'501012');" styleClass="version501012 {!v.Id}" value="{!v.checked}" />
+                                                </td>
+                                                <td>{!v.visualname}</td>
+                                             </tr>
+                                         </apex:repeat>
+                                    </tbody>
+                                </table>                                
+                            </apex:pageBlock>                        
+                        </div>           
+                        <div id="tableVersion_Operating_System_501013" class="tableVersion">
+                            <apex:pageBlock >
+                                <table cellpadding="10" >
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Android versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                         <apex:repeat value="{!operatingSystemVersionMap['501013']}" var="v">
+                                             <tr>
+                                                <td>
+                                                    <div class="main_container"> 
+                                                        <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                        <div class="options">
+                                                            <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                            <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                        </div>
+                                                    </div> 
+                                                    <div class="includeExclude subversion" version="501013" onclick="toggleCheckbox('{!v.Id}');" />
+                                                    <apex:inputCheckbox onchange="checkVersion(this,'501013');" styleClass="version501013 {!v.Id}" value="{!v.checked}" />
+                                                </td>
+                                                <td>{!v.visualname}</td>
+                                             </tr>
+                                         </apex:repeat>
+                                    </tbody>
+                                </table>                                
+                            </apex:pageBlock>                        
+                        </div>  
+                        <div id="tableVersion_Operating_System_501027" class="tableVersion">
+                            <apex:pageBlock >
+                                <table cellpadding="10" >
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>WindowsPhone versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                         <apex:repeat value="{!operatingSystemVersionMap['501027']}" var="v">
+                                             <tr>
+                                                <td>
+                                                    <div class="main_container"> 
+                                                        <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                        <div class="options">
+                                                            <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                            <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                        </div>
+                                                    </div> 
+                                                    <div class="includeExclude subversion" version="501027" onclick="toggleCheckbox('{!v.Id}');" />
+                                                    <apex:inputCheckbox onchange="checkVersion(this,'501027');" styleClass="version501027 {!v.Id}" value="{!v.checked}" />
+                                                </td>
+                                                <td>{!v.visualname}</td>
+                                             </tr>
+                                         </apex:repeat>
+                                    </tbody>
+                                </table>                                
+                            </apex:pageBlock>                        
+                        </div>   
+                     </div>                  
+             </apex:outputText>
+
+             <apex:outputText rendered="{!techoTarget.Type__c = 'Browser'}">         
+                <div style="float:left;" >
+                    <div id="tableVersion_Browser_AndroidBrowser" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Android versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Android Browser']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="Android" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'Android');" styleClass="versionAndroidBrowser {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_Firefox" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Firefox versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Firefox']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="Firefox" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'Firefox');" styleClass="versionFirefox {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_GoogleChrome" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Google Chrome versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Google Chrome']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="GoogleChrome" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'GoogleChrome');" styleClass="versionGoogleChrome {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_MicrosoftInternetExplorer" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Microsoft Internet Explorer versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Microsoft Internet Explorer']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="MicrosoftInternetExplorer" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'MicrosoftInternetExplorer');" styleClass="versionMicrosoftInternetExplorer {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_Mozilla" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Mozilla versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Mozilla']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="Mozilla" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'Mozilla');" styleClass="versionMozilla {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_NetscapeNavigator" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Netscape Navigator versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Netscape Navigator']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="NetscapeNavigator" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'NetscapeNavigator');" styleClass="versionNetscapeNavigator {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_Opera" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Opera versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Opera']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="Opera" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'Opera');" styleClass="versionOpera {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_Other" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Other versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Other']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="Other" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'Other');" styleClass="versionOther {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>
+                    <div id="tableVersion_Browser_Safari" class="tableVersion">
+                        <apex:pageBlock >
+                            <table cellpadding="10" class="tecTable" >
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Safari versions<a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <apex:repeat value="{!browserVersionMap['Safari']}" var="v">
+                                         <tr>
+                                            <td>
+                                                <div class="main_container"> 
+                                                    <div class="selected" onclick="showOptions(j_tech$(this));">select ▼</div>
+                                                    <div class="options">
+                                                        <div class="element inc" onclick="setValueCheckBox(true, '{!v.Id}')">include</div>
+                                                        <div class="element exc" onclick="setValueCheckBox(false,'{!v.Id}')">exclude</div>
+                                                    </div>
+                                                </div> 
+                                                <div class="includeExclude subversion" version="Safari" onclick="toggleCheckbox('{!v.Id}');" />
+                                                <apex:inputCheckbox onchange="checkVersion(this,'Safari');" styleClass="versionSafari {!v.Id}" value="{!v.checked}" />
+                                            </td>
+                                            <td>{!v.visualname}</td>
+                                         </tr>
+                                     </apex:repeat>
+                                </tbody>
+                            </table>                                
+                        </apex:pageBlock>                        
+                    </div>                    
+                </div>                  
+             </apex:outputText>
+
+
+    <!-- versione come dovrebbe essere
+                    <apex:repeat value="{!operatingSystemVersionMap}" var="vv" >
+                        <div id="tableVersion{!vv}" class="tableVersion">
+                            <apex:pageBlock rendered="{!CONTAINS(operatingSystemParent,vv)}">
+                                <table cellpadding="10" >
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>version <a style="float:right;" onclick="hideAllTableVersions();"><img src="/img/search_dismiss.gif" /></a></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                         <apex:repeat value="{!operatingSystemVersionMap[vv]}" var="v">
+                                             <tr>
+                                                <td>
+                                                    <apex:outputText id="aaa">
+                                                        <apex:inputCheckbox onchange="checkVersion(this,'{!vv}');" styleClass="version{!vv}" value="{!v.checked}" />
+                                                    </apex:outputText>
+                                                </td>
+                                                <td>{!v.visualname}</td>
+                                             </tr>
+                                             
+                                         </apex:repeat>
+                                    </tbody>
+                                </table>                                
+                            </apex:pageBlock>                        
+                        </div>                        
+                    </apex:repeat>
+    
+    -->
+    <!-- versione ok
+        <apex:repeat value="{!operatingSystemVersionMap['501013']}" var="v">
+            <apex:inputCheckbox onchange="checkVersion(this,'501013');" styleClass="version501013" value="{!v.checked}" />
+            {!v.visualname}
+            <br />
+        </apex:repeat>
+        <apex:repeat value="{!operatingSystemVersionMap['501012']}" var="v">
+            <apex:inputCheckbox onchange="checkVersion(this,'501012');" styleClass="version501012" value="{!v.checked}" />
+            {!v.visualname}
+            <br />
+        </apex:repeat>
+    -->
+        
+    <!-- versione ko
+    <apex:repeat value="{!operatingSystemVersionMap}" var="vv" >
+        <apex:outputPanel rendered="{!OR(vv='501012',vv='501013')}">
+            <apex:repeat value="{!operatingSystemVersionMap[vv]}" var="v">
+                <apex:inputCheckbox onchange="checkVersion(this,'{!vv}');" styleClass="version{!vv}" value="{!v.checked}" />
+                {!v.visualname}
+                <br />
+            </apex:repeat>
+        </apex:outputPanel>
+    </apex:repeat>
+    -->                
+               
+            
+        </div>
+    </apex:outputPanel>
+    <div style="clear:both;" />      
+
+</apex:form>
+</apex:component>

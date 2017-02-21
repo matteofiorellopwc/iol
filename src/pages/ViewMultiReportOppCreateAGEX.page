@@ -1,0 +1,141 @@
+<apex:page controller="ViewMultiReport" sidebar="false" >
+
+<head>
+    <link href="/sCSS/29.0/sprites/1384456088000/Theme3/default/base/Reports.css" rel="stylesheet" type="text/css" />
+</head>
+
+<apex:form >
+
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <!--
+    <apex:includeScript value="{!URLFOR($Resource.datejs,'date.js')}"/>    
+    -->
+    <apex:includeScript value="{!URLFOR($Resource.datejs,'date-'& SUBSTITUTE(localeKey,'_','-') & '.js')}"/>    
+
+    <script>
+        j$ = jQuery.noConflict();
+        function setFocusOnLoad() {}
+    </script>
+    
+    <style>
+        .drilldown,label[for="drillbreak"],#drillbreak,input[name="drilldown"]{
+            display:none;
+        }
+        
+
+    
+        #rep1,#rep2{
+            float:left;        
+        }
+        
+        #rep1{
+            padding-right: 10px;
+        }
+        
+        .reportTable td{
+            padding: 10px;
+        }
+        
+        input.customInput{
+            display: inline;
+        }
+        
+        #pblock {
+            width: 800px;
+        }
+    </style>
+    
+    <apex:sectionHeader title="Reports Daily" subtitle="Commissionato Vs Ricavi - AGENZIE TERRITORIALI - Opportunità Create"/>
+    <div id="pblock">
+        <apex:pageBlock >
+            <apex:pageBlockSection columns="1" title="Seleziona le date"  >
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Data inizio</apex:outputLabel>
+                    <input type="text" id="datada" class="customInput" onfocus="DatePicker.pickDate(false, 'datada', false);" />
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Data fine</apex:outputLabel>
+                    <input type="text" id="dataa" class="customInput" onfocus="DatePicker.pickDate(false, 'dataa', false);" />
+                </apex:pageBlockSectionItem>            
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel ></apex:outputLabel>
+                    <button onclick="getReportContent();return false;">Esegui</button>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </div>
+    <script>
+        function getReportContent(){
+            try{
+                j$('#loading').show();
+                var datada = Date.parse(j$('#datada').val()).toString('yyyyMMdd');
+                var dataa = Date.parse(j$('#dataa').val()).toString('yyyyMMdd');            
+                
+                var url1 = '/00O20000005IO0n?isdtp=nv&pv4='+datada+'&pv5='+dataa;
+                var url2 = '/00O20000005IO0s?isdtp=nv&pv4='+datada+'&pv5='+dataa;
+                //console.log('url1 = '+url1);
+                getReportContentJs(url1,url2);
+            }catch(e){
+                alert('Inserire correttamente le date');
+                j$('#loading').hide();                
+            }
+        }
+    </script>
+        <apex:actionFunction name="getReportContentJs" action="{!getReportContent}" rerender="content"  >
+            <apex:param assignTo="{!url1}" name="url1" value=""/>
+            <apex:param assignTo="{!url2}" name="url2" value=""/>
+        </apex:actionFunction>
+        
+    <apex:outputpanel layout="block" id="content">     
+        <script>
+            j$(document).ready(function(){
+                j$('#parent').width((j$('#rep1').width()+j$('#rep2').width()+100)+'px');
+            });
+            
+        </script>    
+        <div id="parent">
+            <div id="rep1">
+                <!--
+                <a href="/{!$currentPage.parameters.rep1}">vai al report 1</a>
+                -->
+                <apex:outputPanel rendered="{!body1 != ''}">
+                    <h1 class="pageType noSecondHeader">COMMISSIONATO</h1>
+                </apex:outputPanel>
+                <div class="bGeneratedReport">
+                    <div class="bPageBlock brandSecondaryBrd">
+                        <div class="pbBody">
+                            <div class="pbSubblock">
+                                <div class="pbSubbody">
+                                    <apex:outputText escape="false" value="{!body1}" />    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="rep2">
+                <!-- 
+                    <a href="/{!$currentPage.parameters.rep2}">vai al report 2</a>        
+                -->
+                <apex:outputPanel rendered="{!body2 != ''}">
+                    <h1 class="pageType noSecondHeader">RICAVI</h1>
+                </apex:outputPanel>
+                <div class="bGeneratedReport">
+                    <div class="bPageBlock brandSecondaryBrd">
+                        <div class="pbBody">
+                            <div class="pbSubblock">
+                                <div class="pbSubbody">
+                                    <apex:outputText escape="false" value="{!body2}" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+            </div>
+        </div> 
+        <div id="loading" style="display:none;">
+            <c:Loading BackColor="#FFFFFF" borderColor="#FFFFFF" borderSize="0" height="50px" width="120px" ImageUrl="/img/loading32.gif" Message="Esecuzione..." messageStyle="color:darkred;font-size:11pt;font-weight:bold;"/>
+        </div>
+    </apex:outputpanel>        
+</apex:form>           
+</apex:page>

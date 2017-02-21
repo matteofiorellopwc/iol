@@ -1,0 +1,25 @@
+<apex:component controller="RevenueApplicationRelatedListController" allowDML="true">
+	<apex:form >
+		<apex:pageBlock >
+			<apex:pageBlockButtons location="top">
+				<apex:commandButton action="{!saveRecords}" value="Salva" rerender="table_panel" status="updateStatus"/>
+				<input type="button" value="Indietro" class="btn" onclick="top.location.replace('/{!$currentpage.parameters.id}');" />
+				<apex:actionStatus id="updateStatus">
+					<apex:facet name="start">
+						<apex:image value="/img/loading32.gif" width="24px" height="24px" />
+					</apex:facet>
+				</apex:actionStatus>
+			</apex:pageBlockButtons>
+			<apex:outputPanel layout="block" id="table_panel">
+			<apex:pageMessages />
+				<apex:pageBlockTable value="{!listRA}" var="ra">
+					<apex:column value="{!ra.Mese__c}"/>
+					<apex:column value="{!ra.Anno__c}"/>
+					<apex:column headerValue="ADX Placement Updated" >
+						<apex:inputField value="{!ra.ADXPlacementUpdated__c}" />
+					</apex:column>
+				</apex:pageBlockTable>
+			</apex:outputPanel>
+		</apex:pageBlock>
+	</apex:form>
+</apex:component>

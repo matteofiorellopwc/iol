@@ -1,0 +1,249 @@
+<apex:page showHeader="true" sidebar="true" controller="CPMAvailabilityControllerLocal">
+
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.qtip,'jquery.qtip.min.css')}" />
+
+    <apex:includeScript value="{!URLFOR($Resource.qtip,'jquery.min.js')}" />
+    <apex:includeScript value="{!URLFOR($Resource.qtip,'jquery-migrate-1.0.0.js')}" />
+    <apex:includeScript value="{!URLFOR($Resource.qtip,'jquery.qtip.min.js')}" />   
+
+    <style type="text/css">
+        
+        #forecastTable{
+            border-right: 1px solid;
+            border-bottom: 1px solid;
+        }
+
+        #forecastTable tr th,#forecastTable tr td{
+            border-left: 1px solid;
+            border-top: 1px solid;
+            padding: 3px;
+        }
+
+        .imgLoading{
+            width: 20px;
+        }
+        .activeTab { 
+            background-color: #236FBD; 
+            color:white; 
+            background-image:none 
+        }
+        .inactiveTab { 
+            background-color: lightgrey; 
+            color:black; 
+            background-image:none
+        }
+
+    </style>
+    <script type="text/javascript">
+        function setFocusOnLoad(){ }
+        
+        function resetUnload(){
+            window.onbeforeunload = function(){};
+        }
+
+        function recoverUnload(){
+            window.onbeforeunload = function(){
+                CPMAvailabilityControllerLocal.deleteObsoleteData(function(result, event){});
+            };
+        }
+
+    </script>
+    
+    <apex:sectionHeader subtitle="Verifica disponibilità CPM"/>
+    <apex:form id="form">
+        <apex:pageMessages />
+        <apex:pageBlock title="Selezione Prodotto" >
+            <apex:pageBlockSection columns="1" >
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >{!$ObjectType.Product2.fields.Formato__c.label}</apex:outputText>
+                    <apex:outputText >
+                        <apex:selectList size="1" value="{!formatoSelected}" >
+                            <apex:selectOptions value="{!formati}" />
+                            <apex:actionSupport rendered="{! NOT(isRunning) }" event="onchange" action="{!deleteProduct}" reRender="form" onsubmit="document.getElementById('formatoChange').style.display = 'inline';"/>
+                        </apex:selectList>
+                        <img src="/img/loading32.gif" id="formatoChange" style="display:none;width:16px;"/>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >Prodotto</apex:outputText>
+                    <apex:outputText >
+                        <apex:selectList size="1" value="{!prodottoSelected}" rendered="{!NOT(ISBLANK(formatoSelected))}" >
+                            <apex:selectOptions value="{!prodotti[formatoSelected]}" />
+                            <apex:actionSupport rendered="{!NOT(isRunning)}" event="onchange" action="{!chooseProduct}" reRender="form" onsubmit="document.getElementById('prodottoChange').style.display = 'inline';"/>
+                        </apex:selectList>
+                        <img src="/img/loading32.gif" id="prodottoChange" style="display:none;width:16px;"/>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>        
+            </apex:pageBlockSection>            
+        </apex:pageBlock>
+
+        <apex:pageBlock title="" rendered="{!NOT(ISBLANK(lineItem))}">
+            <script>
+                opportunityId = '{!opportunity.Id}';
+            </script>
+            
+            <apex:pageBlockButtons location="top">
+                <apex:commandButton disabled="{!ISBLANK(formatoSelected) || ISBLANK(prodottoSelected) || isRunning}" value="Verifica disponibilità CPM" action="{!startCPMAvailability}" onclick="j$('span[id$=\'loadingPanel\']').show();resetUnload();" />
+            </apex:pageBlockButtons>
+            
+            <table width="100%">
+                <tr>
+                    <td width="40%">
+                        <apex:pageBlock title="Selezione Date">
+                        
+                            <apex:pageBlockSection columns="2">
+                                <apex:pageBlockSectionItem >
+                                    <apex:outputLabel value="Data Inizio" for="startDate"/>
+                                    <apex:inputText id="startDate" value="{!formattedStartDate}" onfocus="DatePicker.pickDate(false, '{!$Component.startDate}', false);"/>
+                                </apex:pageBlockSectionItem>
+                                <apex:pageBlockSectionItem >
+                                    <apex:outputLabel value="Data Fine" for="endDate"/>
+                                    <apex:inputText id="endDate" value="{!formattedEndDate}" onfocus="DatePicker.pickDate(false, '{!$Component.endDate}', false);"/>
+                                </apex:pageBlockSectionItem>
+                                <br/>
+                            </apex:pageBlockSection>
+                            
+                            <apex:pageBlock rendered="{!AND(NOT(ISBLANK(ProductDetail)),NOT(ISBLANK(lineItem)))}"  title="Disponibilità CPM" >
+                                <apex:pageBlockTable value="{!forecastMap[ProductDetail]}" var="f"  columnsWidth="16%,28%,28%,28%">
+                                    <apex:column headerValue="Data">
+                                        <apex:outputText value="{0,date,dd'/'MM'/'yyyy}" rendered="{!f.startDate = f.endDate}">
+                                            <apex:param value="{!f.startDate}" />
+                                        </apex:outputText>
+                                        <b><apex:outputText value="Totale" rendered="{!f.startDate <> f.endDate}" /></b>
+                                    </apex:column>
+                                    <apex:column headerValue="Bacino Iniziale">
+                                        <c:formatCurrency rendered="{!f.processed}" value="{!f.forecast.matchedUnits}" showCurrency="false" showDecimal="false" />
+                                    </apex:column>
+                                    <apex:column headerValue="Impress.Vendute">
+                                        <c:formatCurrency rendered="{!f.processed}"  value="{!f.forecast.matchedUnits - f.forecast.availableUnits}" showCurrency="false" showDecimal="false" />
+                                    </apex:column>
+                                    <apex:column headerValue="Impress.Dispon.">
+                                        <apex:image url="/img/loading32.gif" styleClass="imgLoading" rendered="{! NOT(f.processed)}" />
+                                        <apex:outputText rendered="{! NOT(ISBLANK(f.error)) }" value="{!f.error}" escape="false" />
+                                        <apex:outputText rendered="{! ISBLANK(f.error) && f.processed}">
+                                            <apex:commandLink rendered="{! NOT(isRunning) }" action="{!showForecastDetail}" onclick="j$('span[id$=\'loadingPanel\']').show();resetUnload();" >
+                                                <apex:param name="productIdForecastDetail" value="{!ProductDetail}" assignTo="{!productIdForecastDetail}" />
+                                                <apex:param name="keyForecastDetail" value="{!f.key}" assignTo="{!keyForecastDetail}" />
+                                                <apex:image url="/img/msg_icons/info16.png" styleClass="info" />
+                                            </apex:commandLink>
+                                            &nbsp;
+                                            <c:formatCurrency value="{!f.forecast.availableUnits}" showCurrency="false" showDecimal="false" />
+                                        </apex:outputText>
+                                    </apex:column>                              
+                                </apex:pageBlockTable>
+                                <apex:commandLink value="Mostra tutti i prodotti" rendered="{!NOT(isRunning) && ISBLANK(prodottoSelected)}" action="{!resetProductDetail}" onclick="resetUnload();"/>
+                            </apex:pageBlock>
+                            
+                        </apex:pageBlock>
+                    </td>
+                    <td width="60%">
+                        <apex:tabPanel switchType="client" selectedTab="name2" tabClass="activeTab" inactiveTabClass="inactiveTab">
+                            <apex:tab label="Inventory Target" name="inventory" rendered="{!AND(isVisibleInventoryTargetTab || (lineItem.isInventoryTargetingEdit__c == 'true'),lineItem.Product__r.family = 'Banner', lineItem.Integrato_con_DFP_formula__c = 'true')}">
+                            <apex:outputText rendered="{!lineItem.Product__r.InventoryTargetType__c == 'Ad Units'}">
+                                    <iframe src="{!$Site.prefix}/apex/editInventoryTargetingComponent?sobjectName=lineitem__c&id={!lineItem.id}&drillDownLevel=0&editable={!AND(lineItem.isInventoryTargetingEdit__c=='true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}&includeMode={!lineItem.isInventoryTargetingInclude__c}&excludeMode={!lineItem.isInventoryTargetingExclude__c}&filterSize={!lineItem.Product__r.Size__c}&platform={!lineItem.product__r.target_platform__c}&canalePrimario={!lineItem.product__r.canalePrimario__c}" width="100%" height="400px"  frameborder="0" />            
+                            </apex:outputText>
+                            <apex:outputText rendered="{!lineItem.Product__r.InventoryTargetType__c == 'Placements'}">
+                                    <iframe src="{!$Site.prefix}/apex/editPlacementComponent?sobjectName=lineitem__c&id={!lineItem.id}&canalePrimario={!lineItem.product__r.canalePrimario__c}&drillDownLevel=0&editable={!AND(lineItem.isInventoryTargetingEdit__c=='true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}&includeMode={!lineItem.isInventoryTargetingInclude__c}&excludeMode={!lineItem.isInventoryTargetingExclude__c}&platform={!lineItem.product__r.target_platform__c}" width="100%" height="400px"  frameborder="0" />           
+                            </apex:outputText>
+                            </apex:tab>
+                            <apex:tab label="Pages and Section" name="pagesSections" rendered="{!AND(isVisiblePagesSectionsTab || (lineItem.isPagesSectionsEdit__c == 'true'), lineItem.ProductFamily__c = 'Banner', lineItem.Integrato_con_OAS_formula__c = 'true')}">
+                                <iframe src="{!$Site.prefix}/apex/PagesSections?sobjectName=lineitem__c&id={!lineItem.id}&editable={!CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_')}&includeMode={!lineItem.isPagesSectionsInclude__c}&excludeMode={!lineItem.isPagesSectionsExclude__c}" width="100%" height="400px"  frameborder="0" />
+                            </apex:tab>
+                            <apex:tab label="Frequency Cap" name="frequencycap" rendered="{!(isVisibleFrequencyCapTab || (lineItem.isFrequencyCapEdit__c == 'true') || lineItem.Ad_Server__c = 'OAS')}">
+                                <iframe src="{!$Site.prefix}/apex/editfrequencyCapComponent?sobjectName=lineitem__c&id={!lineItem.id}&editable={!AND(lineItem.isFrequencyCapEdit__c=='true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}" width="100%" height="400px"  frameborder="0" />            
+                            </apex:tab>
+                            <apex:tab label="Day Part Targeting" name="daypart" rendered="{!isVisibleDayPartTab || (lineItem.isDayPartTargetingEdit__c == 'true')}">
+                                <iframe src="{!$Site.prefix}/apex/editDayPartTargetingComponent?sobjectName=lineitem__c&id={!lineItem.id}&editable={!AND(lineItem.isDayPartTargetingEdit__c=='true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}" width="100%" height="400px"  frameborder="0" />            
+                            </apex:tab>        
+                            <apex:tab label="Custom Criteria" name="custom" rendered="{!(isVisibleCustomCriteriaTab || (lineItem.isCustomCriteriaEdit__c == 'true')) && lineItem.Integrato_con_DFP_formula__c = 'true'}">
+                                <iframe src="{!$Site.prefix}/apex/editCustomCriteriaComponent?sobjectName=lineitem__c&id={!lineItem.id}&editable={!AND(lineItem.isCustomCriteriaEdit__c=='true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}" width="100%" height="400px"  frameborder="0" />
+                            </apex:tab>
+                            <apex:tab label="Technology Target" name="technology" rendered="{!(isVisibleTechnologyTargetTab || (lineItem.isTechnologyTargetingEdit__c == 'true')) && lineItem.Integrato_con_DFP_formula__c = 'true'}">
+                                <iframe src="{!$Site.prefix}/apex/editTechnologyTargetingComponent?sobjectName=lineitem__c&id={!lineItem.id}&editable={!AND(lineItem.isTechnologyTargetingEdit__c=='true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}" width="100%" height="400px"  frameborder="0" />
+                                }
+                            </apex:tab>
+                            <apex:tab label="Cookie and Search Term" name="cookieSearch" rendered="{!(isVisibleCookiesTab || (lineItem.isCookieSearchTermEdit__c == 'true')) && lineItem.ProductFamily__c = 'Banner' && lineItem.Integrato_con_OAS_formula__c = 'true'}">
+                                <iframe src="{!$Site.prefix}/apex/EditCookieSearchTerm?sobjectName=LineItem__c&id={!lineItem.id}&editable={!AND(lineItem.isCookieSearchTermEdit__c  == 'true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}" width="100%" height="400px"  frameborder="0" />
+                            </apex:tab>
+                            <apex:tab label="Geography Target" name="geography" rendered="{!(isVisibleGeographyTab || lineItem.isGeographyTargetEdit__c == 'true' ) && lineItem.Integrato_con_DFP_formula__c = 'true'}"> 
+                                <iframe src="{!$Site.prefix}/apex/EditGeographyComponent?sobjectName=LineItem__c&id={!lineItem.id}&editable={!AND(lineItem.isGeographyTargetEdit__c=='true',CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_'))}" width="100%" height="400px"  frameborder="0" /> 
+                            </apex:tab>
+                            <apex:tab label="Labels" name="label" rendered="{!lineItem.ProductFamily__c = 'Banner' && lineItem.Integrato_con_DFP_formula__c = 'true'}">
+                                <iframe src="{!$Site.prefix}/apex/editLabelComponent?id={!lineItem.id}&editable={!CONTAINS(lineItem.Profili_gestione_targeting_lineitem__c,'_'&$profile.name&'_')}" width="100%" height="400px"  frameborder="0" />
+                            </apex:tab>   
+                        </apex:tabPanel>
+                    </td>
+                </tr>
+            </table>
+
+        </apex:pageBlock>
+        
+        
+        <apex:commandButton style="display:none;" id="processForecastButton" action="{!processForecast}" value="processForecastJs" rendered="{!isRunning}" reRender="form" onclick="resetUnload();" />
+        <script type="text/javascript">
+            //console.log({!isRunning});
+            j$ = jQuery.noConflict();
+            j$(document).ready(function($){
+                recoverUnload();
+                if({!isRunning}){
+                    $('input[id$="processForecastButton"]').click();
+                }
+            });
+        </script>                   
+
+
+        <apex:pageBlock rendered="{!AND(forecastDetail != null,NOT(ISBLANK(lineItem)))}" title="Dettaglio Contenting Line Items">
+            <apex:pageMessage summary="Nessun line item contending" rendered="{!NOT(forecastDetail.existContendingLineItems)}" severity="info" strength="1" />
+            <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Prodotto</apex:outputLabel>
+                    <apex:outputText value="{!productsMap[forecastDetail.li.Product__c].Name}" />
+                </apex:pageBlockSectionItem>
+                <br/>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Data Inizio</apex:outputLabel>
+                    <apex:outputText value="{0,date,dd'/'MM'/'yyyy}">
+                        <apex:param value="{!forecastDetail.startDate}" />
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Data Fine</apex:outputLabel>
+                    <apex:outputText value="{0,date,dd'/'MM'/'yyyy}">
+                        <apex:param value="{!forecastDetail.endDate}" />
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Bacino Iniziale</apex:outputLabel>
+                    <c:formatCurrency value="{!forecastDetail.forecast.matchedUnits}" showCurrency="false" showDecimal="false" />
+                </apex:pageBlockSectionItem>    
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Impressions Vendute</apex:outputLabel>
+                    <c:formatCurrency value="{!forecastDetail.forecast.matchedUnits - forecastDetail.forecast.availableUnits}" showCurrency="false" showDecimal="false" />
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Impressions Disponibili</apex:outputLabel>
+                    <c:formatCurrency value="{!forecastDetail.forecast.availableUnits}" showCurrency="false" showDecimal="false" />
+                </apex:pageBlockSectionItem>    
+            </apex:pageBlockSection> 
+            <apex:pageBlockTable value="{!forecastDetail.contendingLineItems}" var="c">
+                <apex:column value="{!forecastDetail.contendingLineItems[c].name}" headerValue="Nome" />
+                <apex:column value="{!forecastDetail.contendingLineItems[c].costType}" headerValue="Delivery Model" />
+                <apex:column value="{!forecastDetail.contendingLineItems[c].priority}" headerValue="Priorità" />
+                <apex:column value="{!forecastDetail.contendingLineItems[c].startDateTimeFormat}" headerValue="Data/ora inizio" />
+                <apex:column value="{!forecastDetail.contendingLineItems[c].endDateTimeFormat}" headerValue="Data/ora fine" />
+                <apex:column headerValue="Impressions">
+                    <c:formatCurrency value="{!forecastDetail.contendingLineItems[c].quantita}" showCurrency="false" showDecimal="false" />
+                </apex:column>
+                <apex:column headerValue="Impressions contending" rendered="false">
+                    <c:formatCurrency value="{!forecastDetail.contendingLineItems[c].contendingImpressions}" showCurrency="false" showDecimal="false" />
+                </apex:column>
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+        <apex:outputPanel id="loadingPanel" style="display:none;">
+            <c:Loading BackColor="#FFFFFF" borderColor="#FFFFFF" borderSize="0" height="50px" width="120px" ImageUrl="/img/loading32.gif" Message="Caricamento..." messageStyle="color:darkred;font-size:11pt;font-weight:bold;"/>
+            <style type="text/css">
+                #salesFroceSource_StatusBox{ position: fixed; }
+            </style>
+        </apex:outputPanel>
+    </apex:form>    
+</apex:page>

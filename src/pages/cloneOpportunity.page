@@ -1,0 +1,37 @@
+<apex:page standardController="Opportunity" extensions="extensionCloneOpportunity">
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <apex:pageMessage severity="error" title="Le opportunità importate dallo storico non possono essere clonate" rendered="{!NOT(ISBLANK(Opportunity.Import_Ext_ID__c))}"  />
+    <apex:pageMessage severity="error" title="Al momento non è possibile clonare opportunità con pacchetti" rendered="{!hasPack}"  />
+    <a href="/{!opportunity.id}">torna all'<!--'-->opportunità</a>
+    <div id="ricerca" style="display:none;">
+	    <c:Loading BackColor="#FFFFFF" borderColor="#FFFFFF" borderSize="0" height="50px" width="120px" ImageUrl="/img/loading32.gif" Message="Clonazione in corso..." messageStyle="color:darkred;font-size:11pt;font-weight:bold;"/>
+    </div>
+        
+    <apex:outputField value="{!Opportunity.Status__c}" rendered="false" />        
+    <apex:form >    	
+    	<apex:pageMessages escape="false" rendered="{!OR(true, hasError, NOT(hasNextPacchetto))}" id="messages"></apex:pageMessages>
+    	<apex:actionFunction name="clonaPacchetto" action="{!clonePacchetto}" reRender="clone,messages"></apex:actionFunction>
+        <apex:pageBlock rendered="{!AND(ISBLANK(Opportunity.Import_Ext_ID__c),NOT(hasPack))}">
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Clona" action="{!cloneOpp}" reRender="clone,messages" onclick="$('#ricerca').css('display', 'block');"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection columns="1">
+                <apex:inputfield value="{!opp.name}" />
+            </apex:pageBlockSection>
+        </apex:pageBlock>        
+		<apex:outputPanel id="clone">
+    		<apex:outputText escape="false" rendered="{!hasNextPacchetto}">
+    			<script>
+    				$(document).ready(function() {
+    					clonaPacchetto();
+    				});    				
+    			</script>
+    		</apex:outputText>    		
+    		<apex:outputText escape="false" rendered="{!hasError}">
+    			<script>
+					$('#ricerca').css('display', 'none');    			
+    			</script>
+    		</apex:outputText>
+		</apex:outputPanel>
+    </apex:form>    
+</apex:page>

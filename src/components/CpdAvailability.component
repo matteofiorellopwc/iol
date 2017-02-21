@@ -1,0 +1,55 @@
+<apex:component allowDML="false" controller="CpdAvailabilityComponentController"> 
+    
+    <apex:attribute type="sobject[]" name="sList" description="sobject list" required="false" assignTo="{!sobjects}"/>
+    <apex:attribute type="string" name="functionOk" default="defaultOk" description="function to call if no errors"/>
+    <apex:attribute type="string" name="functionError" default="defaultError" description="function to call if errors"/>    
+    <apex:attribute type="boolean" name="showStatus" default="false" description="showStatus"/>
+    
+    
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}" />
+
+    <apex:actionFunction name="checkAvailabilityLiJs" action="{!checkAvailabilityLi}" rerender="componentPanel"  oncomplete="checkAfterAvailabilityLi();" />
+    <apex:actionFunction name="checkAvailabilityJs" action="{!cpdAvailability}" reRender="componentPanel" oncomplete="checkAfterAvailabilityLi();" />
+            
+    <apex:outputPanel id="componentPanel">
+    <script>
+        j$ = jQuery.noConflict();
+        function checkAfterAvailabilityLi(){
+            if({!skipDispoCPD}) {
+                {!functionOk}();
+            } else if({!isRunning}){
+                checkAvailabilityLiJs();
+                if({!showStatus}){
+                    j$('#status').html("Controllo line item {!IF(index != null && index>0 && index<lis.size, lis[index].name_dfp__c, '')}");                
+                }
+            }else{
+                if({!showStatus}){
+                    j$('#status').html('Finished, error = {!isError}');                
+                }
+                if({!NOT(isError)}){
+                    {!functionOk}();
+                }else{
+                    {!functionError}('{!errors}');
+                }
+            }
+        }
+        function defaultOk(){}
+        function defaultError(errors){
+            j$('#error').html(errors);                //j$('<div/>').html('{!errors}').text()
+        }
+    </script>
+
+
+
+    <apex:commandButton rendered="{!showStatus}" value="Check CPD" action="{!cpdAvailability}" reRender="componentPanel" oncomplete="checkAfterAvailabilityLi();"/>
+
+    <div id="status">
+        
+    </div>
+    <div id="errors">
+
+    </div>
+    </apex:outputPanel>
+    
+
+</apex:component>

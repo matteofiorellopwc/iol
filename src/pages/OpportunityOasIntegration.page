@@ -1,0 +1,10 @@
+<apex:page standardController="Opportunity" extensions="ExtensionOpportunityOasIntegration">
+    <apex:form >
+    	<apex:pageMessages />
+        <apex:pageblock >
+            <apex:commandButton value="Sincronizza" action="{!upsertSfToOas}"/>    
+        </apex:pageblock>
+    </apex:form>
+    
+
+</apex:page>

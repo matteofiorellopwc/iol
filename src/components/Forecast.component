@@ -1,0 +1,72 @@
+<apex:component >
+    <apex:attribute name="ControllerForecast" type="ControllerForecast" description="istanza di ControllerForecast" />
+        <apex:pageblock id="disponibilita" mode="maindetail">
+            <apex:pageMessage title="Errore" 
+                      detail="{!ControllerForecast.error}"  
+                      severity="error"
+                      rendered="{!ControllerForecast.error != ''}" 
+                      escape="false" />
+            <apex:pageBlockButtons location="top">
+                <apex:componentBody />
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection collapsible="false">
+
+              <apex:pageBlockSectionItem >
+                  <apex:outputLabel >Disponibilità</apex:outputLabel>
+                  <apex:outputText >
+                      <c:formatCurrency value="{!ControllerForecast.f.availableUnits}" showCurrency="false" showDecimal="false" />                                                      
+                      {!ControllerForecast.f.unitType}
+                  </apex:outputText>
+              </apex:pageBlockSectionItem>
+              <apex:pageblockSectionItem >
+                  <div id="loadingForecast" style="display:none;" >Richiesta forecast... <img src="/img/loading32.gif" style="width:15px;" /></div>
+              </apex:pageblockSectionItem>   
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >Bacino</apex:outputText>
+                  <apex:outputText >
+                      <c:formatCurrency value="{!ControllerForecast.f.matchedUnits}" showCurrency="false" showDecimal="false" />     
+                      {!ControllerForecast.f.unitType}            
+                  </apex:outputText>
+              </apex:pageBlockSectionItem>           
+<!--               
+              <apex:pageblockSectionItem >
+                  <apex:outputText >unitType</apex:outputText>
+                  <apex:outputText >{!ControllerForecast.f.unitType}</apex:outputText>
+              </apex:pageblockSectionItem>
+             
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >matchedUnits</apex:outputText>
+                  <apex:outputText >
+                      <c:formatCurrency value="{!ControllerForecast.f.matchedUnits}" showCurrency="false" showDecimal="false" />                  
+                  </apex:outputText>
+              </apex:pageBlockSectionItem>
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >deliveredUnits</apex:outputText>
+                  <apex:outputText >
+                      <c:formatCurrency value="{!ControllerForecast.f.deliveredUnits}" showCurrency="false" showDecimal="false" />                                    
+                  </apex:outputText>
+              </apex:pageBlockSectionItem>   
+               <apex:pageBlockSectionItem >
+                  <apex:outputText >possibleUnits </apex:outputText>
+                  <apex:outputText >
+                      <c:formatCurrency value="{!ControllerForecast.f.possibleUnits}" showCurrency="false" showDecimal="false" />                                                      
+                  </apex:outputText>
+              </apex:pageBlockSectionItem>              
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >reservedUnits </apex:outputText>
+                  <apex:outputText >
+                      <c:formatCurrency value="{!ControllerForecast.f.reservedUnits}" showCurrency="false" showDecimal="false" />                                                      
+                  </apex:outputText>
+             </apex:pageBlockSectionItem>   
+                          
+              <apex:pageBlockSectionItem >
+                  <apex:outputText >availableUnits</apex:outputText>
+                  <apex:outputText >
+                      <c:formatCurrency value="{!ControllerForecast.f.availableUnits}" showCurrency="false" showDecimal="false" />                                                      
+                  </apex:outputText>
+              </apex:pageBlockSectionItem>
+-->              
+            </apex:pageBlockSection>
+        </apex:pageblock>
+
+</apex:component>

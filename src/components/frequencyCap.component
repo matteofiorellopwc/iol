@@ -1,0 +1,80 @@
+<apex:component controller="ControllerFrequencyCap" allowDML="true" >
+
+<apex:variable var="editMode" value="{!$CurrentPage.parameters.editMode == 'true'}" />
+<apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+
+<apex:form rendered="{!parent['Ad_Server__c'] = 'DFP'}" >
+   
+    <script>
+        function deleteFcJs(idCol){
+            idCol = idCol.replace(':col','');
+            rowNum = idCol[idCol.length-1];
+            //alert(rowNum);
+            showLoading();
+            deleteFc(rowNum);
+        }
+        
+        function showLoading(){
+            $('#loading').show();
+        }
+        
+        function hideLoading(){
+            $('#loading').hide();
+        }
+    </script>
+    
+    <apex:actionFunction name="deleteFc" immediate="true" action="{!deleteFrequencyCap}" rerender="table" >
+        <apex:param name="indexToDelete" value="" assignTo="{!indexToDelete}"/>
+    </apex:actionFunction>
+    
+    <apex:pageBlock id="table">
+        <apex:pageMessages />
+        <apex:pageBlockButtons rendered="{!editable}" >
+        <apex:outputText rendered="{!NOT(editMode)}">
+                <input type="button" value="edit" onclick="window.location.href = window.location.href + '&editmode=true'" />
+          </apex:outputText>
+            <apex:commandButton rendered="{!editMode}" action="{!customSave}" value="save"/>
+        </apex:pageBlockButtons>
+        <apex:pageBlockButtons location="top">
+            <apex:commandButton rendered="{!editMode && editable}" onclick="showLoading();" action="{!addFrequencyCap}" reRender="table" value="Add"/>
+            <img id="loading" src="/img/loading32.gif" style="width:20px;display:none;"/>
+        </apex:pageBlockButtons>
+        <apex:pageBlockTable value="{!frequencyCaps}" var="fp" >
+           <apex:column rendered="{!editMode}" id="col">
+               <a style="cursor:pointer;" onclick="deleteFcJs('{!$Component.col}')">delete</a>
+           </apex:column>
+           <apex:column headerValue="Max Impression*">
+               <apex:inputField rendered="{!editMode && editable}" value="{!fp.maxImpressions__c}" required="true" />
+               <apex:outputField rendered="{!NOT(editMode)}" value="{!fp.maxImpressions__c}" />
+           </apex:column>
+           <apex:column headerValue="Every">
+               <apex:inputField rendered="{!editMode && editable}" value="{!fp.numTimeUnits__c}" required="true" />
+               <apex:outputField rendered="{!NOT(editMode)}" value="{!fp.numTimeUnits__c}" />
+           </apex:column>               
+           <apex:column >
+               <apex:inputField rendered="{!editMode && editable}" value="{!fp.timeUnit__c}" required="true" />
+               <apex:outputField rendered="{!NOT(editMode)}" value="{!fp.timeUnit__c}" />                              
+           </apex:column>           
+        </apex:pageBlockTable>
+        <br /><br />
+        <apex:outputText >*i valori sono per singolo utente</apex:outputText>
+    </apex:pageBlock>
+</apex:form>
+<apex:form rendered="{!parent['Ad_Server__c'] = 'OAS'}" >
+    <apex:pageBlock mode="detail" >
+        <apex:pageMessages />
+        <apex:pageBlockButtons >
+            <apex:commandButton value="Salva" action="{!customSaveOas}" rendered="{!editable}"/>
+        </apex:pageBlockButtons>    
+        <apex:pageBlockSection title="Frequenza primaria" columns="1" collapsible="false">
+            <apex:inputField value="{!parent['OasPrimaryFrequencyImpPerVisitor__c']}"/>
+            <apex:inputField value="{!parent['OasPrimaryFrequencyClickPerVisitor__c']}"/>
+            <apex:inputField value="{!parent['OasPrimaryFreqScope__c']}"/>
+        </apex:pageBlockSection>
+        <apex:pageBlockSection title="Frequenza primaria" columns="1" collapsible="false">
+            <apex:inputField value="{!parent['OasSecondaryFrequencyImpPerVisitor__c']}"/>
+            <apex:inputField value="{!parent['OasSecondaryFreqScope__c']}"/>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</apex:form>
+</apex:component>

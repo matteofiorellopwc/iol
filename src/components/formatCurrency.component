@@ -1,0 +1,37 @@
+<apex:component >
+<apex:attribute name="value" description="valore currency" required="true" type="Decimal"/>
+<apex:attribute name="showDecimal" description="show decimal" required="false" type="boolean" default="true"/>
+<apex:attribute name="showCurrency" description="show Currency" required="false" type="boolean" default="true"/>
+<apex:attribute name="currencyIsoCode" description="choose current currency" required="false" type="string" default="EUR"/>
+<apex:attribute name="separatorFormat" description="choose if decimal is comma or dot separated" type="string" default="Italian" /> <!-- valori ammessi: Italian-English -->
+
+<apex:variable var="value" value="{!IF(ISBLANK(value), 0, value)}"/>
+<apex:variable var="roundedVar" value="{!IF(showDecimal, ROUND(ABS(value),2), ROUND(ABS(value),0))}"/>
+<apex:variable var="isNegative" value="{!IF((ABS(value)-value)=0,false, true)}"/>
+<apex:variable var="thousandSeparator" value="{!IF(separatorFormat = "Italian", ".", ",")}"/>
+<apex:variable var="decimalSeparator" value="{!IF(separatorFormat = "Italian", ",", ".")}"/>
+
+<apex:outputText rendered="{!isNegative}" escape="false" value="-" />
+<apex:outputText rendered="{!showCurrency}" escape="false" value="{!IF(currencyIsoCode = 'EUR', '&euro; ', IF(currencyIsoCode = 'GBP', '£ ', currencyIsoCode ))}" />
+
+<apex:outputText value="{!floor(roundedVar/(10^6))}{!thousandSeparator}" rendered="{!floor(roundedVar/(10^6))>0}"/>
+
+<apex:outputText value="{!floor(roundedVar/(10^5))-floor(roundedVar/(10^6))*10}" rendered="{!floor(roundedVar/(10^5))>0}"/>
+
+<apex:outputText value="{!floor(roundedVar/(10^4))-(floor(roundedVar/(10^5))*10)}" rendered="{!floor(roundedVar/(10^4))>0}"/>
+
+<apex:outputText value="{!floor(roundedVar/(10^3))-(floor(roundedVar/(10^4))*10)}{!thousandSeparator}" rendered="{!floor(roundedVar/(10^3))>0}"/>
+
+<apex:outputText value="{!floor(roundedVar/(10^2))-(floor(roundedVar/(10^3))*10)}" rendered="{!floor(roundedVar/(10^2))>0}"/>
+
+<apex:outputText value="{!floor(roundedVar/10)-(floor(roundedVar/(10^2))*10)}" rendered="{!floor(roundedVar/10)>0}"/>
+
+<apex:outputText value="{!floor(roundedVar)-(floor(roundedVar/10)*10)}"/>
+
+<apex:outputText rendered="{!showDecimal}">
+    <apex:outputText value="{!decimalSeparator}"/>
+    <apex:outputText value="{!floor(roundedVar/0.1)-(floor(roundedVar)*10)}"/>
+    
+    <apex:outputText value="{!floor(roundedVar/0.01)-(floor(roundedVar/0.1)*10)}"/>
+</apex:outputText>
+</apex:component>

@@ -1,0 +1,16 @@
+<apex:page >
+    <style>
+        .conf-sales-super-user-grid {
+            font-size: 1.2em;
+            border-spacing: 5px;
+        }
+    </style>
+    <apex:sectionHeader subtitle="Configurazioni Sales"/>
+    <apex:pageBlock >
+        <apex:panelGrid columns="1" styleClass="conf-sales-super-user-grid">
+            <apex:panelGroup >
+                1.&nbsp;<apex:outputLink value="/apex/PannelloGestioneRicavi">Gestione Data Chiusura Ricavi</apex:outputLink>
+            </apex:panelGroup>
+        </apex:panelGrid>
+    </apex:pageBlock>
+</apex:page>

@@ -1,0 +1,5 @@
+<apex:page >
+    <script>
+        top.location.replace('/01t');
+    </script>
+</apex:page>

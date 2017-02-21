@@ -1,0 +1,100 @@
+<apex:page standardController="Opportunity" extensions="ExtensionOpportunityIntegration,ExtensionCheckUltimaSincronizzazione" >
+<apex:pageMessages escape="false" ></apex:pageMessages>
+<div style="padding:5px;">
+    <a href="/{!Opportunity.id}">torna alla campagna</a>
+</div>
+
+<apex:form >
+<!--
+    <apex:pageMessage detail="Non si ha il permesso di sincronizzare opportunità chiuse vinte" 
+        severity="Error"    
+        rendered="{!AND(NOT(ISBLANK(Opportunity.id_dfp__c)),Opportunity.Status__c <> 'DRAFT',opportunity.iswon,NOT(CONTAINS(Opportunity.Profili_conferma_e_gestione_post_conferm__c,'_'&$Profile.Name&'_')))}"
+     />
+-->
+
+    <apex:pageBlock rendered="{!autdfp}" >
+        <apex:repeat value="{!Opportunity.TeamsTargeted__r}" var="tt" rendered="false">
+            {!tt.idDfp__c}
+        </apex:repeat>
+        <apex:pageBlockSection >
+            <apex:outputField value="{!Opportunity.OwnerId}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.Planner__c}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.OrderAutoNumber__c}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.Id}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.Centro_Media__c}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.Centro_Media_Id_DFP__c}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.Account.Id_DFP__c}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.AccountId}" rendered="false"/>
+            <apex:outputField value="{!Opportunity.id_dfp__c}" rendered="false"/>            
+            <apex:outputField value="{!Opportunity.Name}"/><br />
+            <apex:outputField value="{!Opportunity.Identificativo_Campagna__c}"/><br />
+            <apex:outputField value="{!Opportunity.stageName}"/><br />
+            <apex:outputField value="{!Opportunity.Status__c}"/><br />
+            <apex:outputField value="{!Opportunity.DFP_url__c}" /><br />                                                                      
+            <apex:outputField value="{!Opportunity.Ultima_sincronizzazione_DFP__c}"/><br />
+            <apex:outputField value="{!Opportunity.LastModifiedDate}"/><br />
+            <apex:outputField rendered="false" value="{!Opportunity.Tempo_ultima_sincronizzazione__c}"/>
+            <apex:outputField value="{!opportunity.Stato_sincronizzazione_DFP__c}"/><br />
+            <apex:outputField value="{!opportunity.ReservationStatusFormula__c}" rendered="{!Opportunity.Status__c = 'DRAFT'}" />
+            <apex:outputText escape="false" rendered="{!Opportunity.Status__c = 'DRAFT'}" value="{! '<br />' }" />
+            <apex:inputField value="{!Opportunity.allowOverbook__c}" /><br />
+            <apex:inputField value="{!Opportunity.skipDispoCPD__c}" />
+            
+        </apex:pageBlockSection>
+        
+        <br />
+        <apex:pageBlockButtons location="top">
+            <apex:commandButton action="{!reserveOrder}" value="Prenota campagna" rendered="{!AND(NOT(ISBLANK(Opportunity.id_dfp__c)),Opportunity.Status__c = 'DRAFT',opportunity.ReservationStatus__c = 'UNRESERVED')}"/>
+            <apex:commandButton action="{!releaseOrder}" value="Rilascia campagna" rendered="{!AND(NOT(ISBLANK(Opportunity.id_dfp__c)),Opportunity.Status__c = 'DRAFT',opportunity.ReservationStatus__c = 'RESERVED')}"/>
+            <apex:commandButton action="{!upsertOrderSfdcToDfp}" value="Aggiorna Campagna Salesforce -> DFP" onclick="if({!isSynchronized}){alert('Campagna già sincronizzata');return false;}" rendered="{!OR(NOT(opportunity.iswon),CONTAINS(Opportunity.Profili_conferma_dfp__c,'_'&$Profile.Name&'_'))}" />
+            <!-- funziona ma hanno chiesto di toglierlo  -->              
+            <apex:commandButton action="{!upsertOrderDfpToSfdc}" value="Aggiorna Campagna DFP -> Salesforce" rendered="{!AND(Opportunity.Status__c <> 'DRAFT',$Profile.Name = 'System Administrator')}" />
+            <apex:commandButton action="{!approveOrder}" value="Conferma Campagna" rendered="{!AND(NOT(ISBLANK(Opportunity.id_dfp__c)),Opportunity.Status__c = 'DRAFT',opportunity.iswon,CONTAINS(Opportunity.Profili_conferma_dfp__c,'_'&$Profile.Name&'_'))}"/>
+            <!-- onclick="if(checkConfermaCampagna() == false){return false;}" -->
+<!--            <apex:commandButton action="{!pauseOrder}" value="Annulla conferma Campagna" onclick="if({!Opportunity.Tempo_ultima_modifica__c <> 0}){alert('Sincronizzare prima la campagna');return false;}" rendered="{!Opportunity.Status__c = 'APPROVED'}"/>            -->
+        </apex:pageBlockButtons>    
+        <script>
+            function checkConfermaCampagna(){
+                if({!NOT(isSynchronized)}){
+                    alert('Sincronizzare prima la campagna');
+                    return false;
+                }
+                if({!sfdcLineItems.size == 0}){
+                    alert('Nessun lineitem!');
+                    return false;
+                }
+            }
+        </script>    
+        
+        
+        <apex:pageBlockTable value="{!sfdcLineItems}" var="li" rendered="{!sfdcLineItems.size > 0}">
+            <apex:column headerValue="Nome" >
+                <a href="/{!li.id}">{!li.Name_Dfp__c}</a>
+            </apex:column>    
+            <apex:column width="100px" value="{!li.Delivery_Model__c}" />    
+            <apex:column width="100px" headerValue="Start Date" >
+                <apex:outputField value="{!li.Start_Date__c}" /> 
+                {!li.Start_Hour__c}:{!li.Start_Minute__c}
+            </apex:column>
+            <apex:column width="100px" headerValue="End Date" >
+                <apex:outputField value="{!li.End_Date__c}" /> 
+                {!li.End_Hour__c}:{!li.End_Minute__c}
+            </apex:column>
+            <apex:column width="100px" value="{!li.Status__c}"/>        
+            <apex:column width="150px" value="{!li.reservationStatus__c}" rendered="{!Opportunity.Status__c = 'DRAFT'}" /> <!--  -->
+            <apex:column value="{!li.Notes_dfp__c}" />
+            <apex:column width="100px" rendered="{!Opportunity.Status__c = 'DRAFT'}">
+                <apex:outputText rendered="{!AND(li.Status__c = 'DRAFT')}"> <!-- ,li.Delivery_Model__c = 'CPM' -->
+                    <apex:commandLink value="Prenota" onclick="if(checkConfermaCampagna() == false){return false;}" action="{!reserveLineItem}" rendered="{!li.reservationStatus__c = 'UNRESERVED'}" >
+                        <apex:param name="lineItemId" value="{!li.id}" assignTo="{!lineItemId}" />
+                    </apex:commandLink>
+                    <apex:commandLink value="Rilascia" onclick="if(checkConfermaCampagna() == false){return false;}" action="{!releaseLineItem}" rendered="{!li.reservationStatus__c = 'RESERVED'}" >
+                        <apex:param name="lineItemId" value="{!li.id}" assignTo="{!lineItemId}" />                
+                    </apex:commandLink>
+                </apex:outputText>
+            </apex:column>
+        </apex:pageBlockTable>
+
+    </apex:pageBlock>
+</apex:form>    
+</apex:page>

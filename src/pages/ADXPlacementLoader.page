@@ -1,0 +1,75 @@
+<apex:page controller="ADXPlacementLoaderController" title="ADX Placement Loader" showHeader="true" sidebar="true" tabStyle="LineItem__c">
+	<script>
+		function toggleAll(isChecked) {
+	    	var checkboxes = new Array();
+	    	checkboxes = document.getElementsByTagName('input');
+
+		     for (var i = 0; i < checkboxes.length; i++) {
+		         if (checkboxes[i].type == 'checkbox' && checkboxes[i].getAttribute('disabled') != 'disabled') {
+	            	checkboxes[i].checked = isChecked;
+		         }
+		     }
+	 	}
+	</script>
+	<apex:form >
+		<apex:outputPanel id="main_panel">
+			<apex:pageBlock title="ADX Placement Loader">
+				<apex:pageBlockButtons >
+					<apex:commandButton action="{!upload}" value="Upload" rerender="" />
+					<apex:commandButton action="{!import}" value="Import" rerender="" disabled="{!wrapSize = 0}"/>
+				</apex:pageBlockButtons>
+
+				<apex:pageMessages escape="false" />
+
+				<apex:selectList value="{!month}" multiselect="false" size="1">
+		            Seleziona mese: <apex:selectOptions value="{!months}"/>
+		        </apex:selectList>
+				<apex:selectList value="{!year}" multiselect="false" size="1">
+		            Seleziona anno: <apex:selectOptions value="{!years}"/>
+		        </apex:selectList>
+
+				<br /><br />
+				<apex:pageblockSection >
+	                Clicca <b><a href="{!$Resource.ADXPlacementLoaderTemplate}">qui</a></b> per scaricare il template
+	            </apex:pageblockSection>
+				<apex:outputLabel value="File " for="file"/>
+	            <apex:inputFile value="{!fileBody}" filename="{!fileName}" id="file"/>
+
+	            <apex:outputPanel layout="block" rendered="{!wrapSize > 0}">
+	            	<br />
+		            <apex:pageBlockTable value="{!wrappers}" var="key">
+		            	<apex:column >
+		      				<apex:facet name="header">
+		      					<input type="checkbox" onchange="toggleAll(this.checked)" name="chk[]" checked="true" />
+		      					Import
+		      				</apex:facet>
+		      				<apex:inputCheckbox value="{!wrappers[key].toImport}" disabled="{!wrappers[key].err != null}"/>
+		      			</apex:column>
+		            	<apex:column value="{!wrappers[key].idADX}" headerValue="ADX Placement ID" />
+		            	<apex:column value="{!wrappers[key].valueADX}" headerValue="Value" />
+		            	<apex:column value="{!wrappers[key].numLI}" headerValue="N. LI" />
+		            	<apex:column headerValue="Line Item">
+		            		<apex:pageBlockTable value="{!wrappers[key].mapIdLIW}" var="idLI" rendered="{!wrappers[key].sizeMap > 0}">
+		            			<apex:column headerValue="Nome">
+			            			<apex:outputLink value="{!'/'+wrappers[key].mapIdLIW[idLI].li.Id}">
+			      						{!wrappers[key].mapIdLIW[idLI].li.Name}
+			      					</apex:outputLink>
+		            			</apex:column>
+		            			<apex:column headerValue="Valore corrente mese" value="{!wrappers[key].mapIdLIW[idLI].monthOldValue}"/>
+		            			<apex:column headerValue="Nuovo valore mese" value="{!wrappers[key].mapIdLIW[idLI].monthNewValue}" />
+		            			<apex:column headerValue="Valore corrente line item" value="{!wrappers[key].mapIdLIW[idLI].oldValue}"/>
+		            			<apex:column headerValue="Nuovo valore line item" value="{!wrappers[key].mapIdLIW[idLI].newValue}" />
+	            				<apex:column headerValue="Errori">
+		            				<apex:outputText value="{!wrappers[key].mapIdLIW[idLI].err}" style="color: red;"/>
+		            			</apex:column>
+		            		</apex:pageBlockTable>
+		            	</apex:column>
+		            	<apex:column headerValue="Errori">
+		            		<apex:outputText value="{!wrappers[key].err}" style="color: red;"/>
+		            	</apex:column>
+		            </apex:pageBlockTable>
+	            </apex:outputPanel>
+			</apex:pageBlock>
+		</apex:outputPanel>
+	</apex:form>
+</apex:page>

@@ -1,0 +1,24 @@
+<apex:page controller="ControllerContendingCPM">
+	<apex:form >
+		<apex:pageBlock title="Contending CPM">
+			<apex:pageBlockButtons location="top">
+				<apex:commandButton value="Chiudi" onclick="window.close()"></apex:commandButton>
+			</apex:pageBlockButtons>
+			<apex:pageBlockTable value="{!contendingLineItems}" var="l">
+				<apex:column value="{!l.Name_Dfp__c}"></apex:column>
+				<apex:column value="{!l.Opportunity__r.Name}"></apex:column>
+				<apex:column headerValue="Owner">
+					<apex:outputField value="{!l.Opportunity__r.Owner.Name}"></apex:outputField>
+				</apex:column>
+				<apex:column value="{!l.Start_Date__c}"></apex:column>
+				<apex:column value="{!l.End_Date__c}"></apex:column>
+				<apex:column value="{!l.Priority__c}"></apex:column>
+				<apex:column value="{!l.Delivery_Model__c}"></apex:column>
+				<apex:column headerValue="Impressions/Clicks">
+					<apex:outputField value="{!l.Quantita__c}" rendered="{!l.Delivery_Model__c != 'CPD'}"></apex:outputField>
+					<apex:outputText value="-" rendered="{!l.Delivery_Model__c == 'CPD'}"></apex:outputText>					
+				</apex:column>
+			</apex:pageBlockTable>
+		</apex:pageBlock>
+	</apex:form>
+</apex:page>

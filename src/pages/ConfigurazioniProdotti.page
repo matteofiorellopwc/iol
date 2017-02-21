@@ -1,0 +1,25 @@
+<apex:page title="Configurazione prodotti">
+    <style>
+    	.conf-prod-grid {
+        	font-size: 1.2em;
+        	border-spacing: 5px;
+        }
+    </style>
+    <apex:sectionHeader subtitle="Configurazione prodotti"/>
+    <apex:pageBlock >
+    	<apex:panelGrid columns="1" styleClass="conf-prod-grid">
+            <apex:panelGroup >
+            	1.&nbsp;<apex:outputLink value="/01t/o">Prodotti</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+				2.&nbsp;<apex:outputLink value="/apex/AdUnitsDfp">Assegna canale primario alle Ad Units DFP</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                3.&nbsp;<apex:outputLink value="/apex/PlacementsDfp">Assegna canale primario ai Placements DFP</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+            	4.&nbsp;<apex:outputLink value="/apex/ImpressionStimateNew">Impression stimate</apex:outputLink>
+            </apex:panelGroup>
+		</apex:panelGrid>
+    </apex:pageBlock>
+</apex:page>

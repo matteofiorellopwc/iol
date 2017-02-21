@@ -1,0 +1,8 @@
+<apex:page standardController="Product2" showHeader="false" tabStyle="Opportunity">
+    <apex:composition template="editComponentTemplate" /> 
+    <c:OptionalsProduct >
+        <apex:outputText rendered="{!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}">
+            <input type="button" class="btn" value="edit"  onclick="window.location.href = window.location.href + '&editmode=true';" />      
+        </apex:outputText>
+    </c:OptionalsProduct>
+</apex:page>

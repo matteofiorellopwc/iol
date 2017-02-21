@@ -1,0 +1,429 @@
+<apex:page standardController="AdUnit__c" extensions="ExtensionImpressionStimateNew" sidebar="false" title="Impressions stimate">
+
+    <style>
+        .page-block-content {
+            overflow: auto;
+        }
+                
+        .box-header {
+            margin: 0 auto;
+            width: 95%;
+            height: 30px;
+            line-height: 30px;
+            font-weight: bold;
+            font-size: 1.2em;
+            padding-bottom: 10px;
+        }
+        
+        .box-header-title {
+            margin-right:2%;
+        }
+        
+        .box-body {
+            margin: 0 auto;
+            width: 95%;
+        }
+        
+        .box-left {
+            float: left;
+            width: 50%;
+        }
+        
+        .box-left .box-body{
+            border: 1px solid #E0E3E5;
+            background: #FFFFFF;
+        }
+        
+        .box-right {
+            margin-left: 50%;
+            width: 48%;
+        }
+        
+        .box-body {
+            background: #FFFFFF;
+            border: 1px solid #E0E3E5;
+        }
+        
+        .action-link {
+            color: #015BA7 !important;
+            font-weight: normal;
+            text-decoration: none;
+        }
+        
+        .col-action {
+            padding: 6px 2px;
+        }
+        
+        .col-name {
+            font-weight: bold;
+            padding: 6px 2px;
+        }
+        
+        .col-excluded-pages {
+            vertical-align: middle !important;
+            text-align: center;
+            font-size: 0.8em;
+            color: #434343 !important;
+        }
+        
+        /* Data Table */
+        .sorting_desc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_desc.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .sorting_asc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_asc.png')}') no-repeat scroll right center transparent;
+        }    
+        
+        .sorting {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_both.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .dataTables_length {
+            float: left;
+            width: 40%; 
+        }
+        
+        .dataTables_filter {
+            float: right;
+            text-align: right;
+            width: 50%;
+        }
+        
+        .ui-toolbar {
+            padding: 5px;
+        }
+        
+        .ui-widget-header {
+            background: #DDB929;
+            overflow: auto;
+            color: white;
+        }
+        
+         .ui-widget-header a{
+            color: white;
+        }
+        
+        .ui-widget-header a:hover{
+            color: white;
+        }
+        
+        .dataTables_info {
+            float: left;
+            width: 50%;
+        }
+        
+        .dataTables_paginate {
+            float: right;
+            text-align: right;
+            width: auto;
+        }
+        
+        .ui-state-default {
+            background: #F2F3F3;
+        }
+        
+        #pages-table_previous, #paginate_enabled_next,
+        #pagesEx-table_previous, #paginateEx_enabled_next,
+        #sections-table_previous, #sections-table_next,
+        #sectionPages-table_previous, #sectionPages-table_next {
+            margin-right: 6px;
+        }
+        
+        #pages-table, #pagesEx-table, #sections-table, #sectionPages-table {
+            width: 100%;
+        }
+        
+        #pages-table th, #pagesEx-table th, #sections-table th {
+            background: #F2F3F3;
+            padding: 3px 5px;
+        }
+        
+        #sectionPages-table th {
+            background: #F2F3F3;
+            padding: 3px 5px;
+        }
+        
+        #sectionPages-table_wrapper .ui-widget-header {
+            background: #D36D6B;
+        }
+        
+        .col-check {
+            width: 12px;
+        }
+        
+        .no-items {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .included-pages-table {
+            margin: 10px auto;
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 95%;
+        }
+        
+        .included-pages-table td{
+            border-bottom: 1px solid #E0E3E5;
+        }
+        
+        .included-sections-table {
+            margin: 10px auto;
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 95%;
+        }
+        
+        .included-sections-table .row{
+            border-bottom: 1px solid #E0E3E5;
+        }
+        
+        .included-pageSections-table {
+            margin: 0px auto;
+            cellspacing: 0px;
+            width: 90%;
+        }
+        
+        .img-loading {
+            width: 12px;
+            vertical-aling: middle;
+        }
+        
+        .separator {
+            color: #015BA7;
+        }
+        
+        .too-many-items {
+            text-align: center;
+            color: red;
+            font-weight: bold;
+            font-size: 1.3em;
+            height: 50px;
+            line-height: 50px;
+        }
+        
+        .detailList {
+            table-layout: fixed;
+        }
+        
+        .field {
+            width: 150px;
+        }
+    </style>
+    
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+    
+    <script>
+        var j$ = jQuery.noConflict();
+    
+        j$(document).ready(function() {
+            initPagesTable();
+        });
+        
+        function initPagesTable() {
+            j$('#pages-table').dataTable({
+            	"bPaginate": false,
+                "aoColumns": [
+                    { "bSortable": false },
+                    { "bSortable": true },
+                    { "bSortable": false },
+                    { "bSortable": true },
+                    { "bSortable": true },
+                    { "bSortable": true },
+                    { "bSortable": true },
+                    { "bSortable": true },
+                    { "bSortable": true },
+                    { "bSortable": false },
+                    { "bSortable": false }
+                ],
+                "sDom": '<"H"<"toolbar">lfr>t<"F"ip>',
+                "oLanguage": {
+                    "sUrl": "{!URLFOR($Resource.jquery,'dataTableIta.txt')}"
+                },
+                "iDisplayLength": 50,
+                "bStateSave": true
+            });     
+        }
+        
+        function checkAll(){
+           if(j$('#allCheckbox').is(':checked')){
+               j$('.checkProd').attr('checked','checked');
+           }else{
+               j$('.checkProd').removeAttr('checked');
+           }
+        }
+        
+        function checkRow() {
+        }
+    </script>
+   
+    <apex:form >
+    <apex:sectionHeader subtitle="Impressions stimate" title="Configurazione Prodotti"/>
+    <apex:pageBlock >
+        <apex:pageBlockButtons location="bottom">
+            <apex:commandButton value="Cerca" action="{!search}"></apex:commandButton>
+        </apex:pageBlockButtons>
+        <apex:pageBlockSection columns="4">
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >{!$ObjectType.Product2.fields.name.label}</apex:outputLabel>
+                <apex:inputText value="{!prodname}" styleClass="field"/>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >{!$ObjectType.AdUnit__c.fields.Target_platform__c.label}</apex:outputLabel>
+                <apex:selectList value="{!targetPlatform}" size="1" styleClass="field">
+                    <apex:selectOptions value="{!targetPlatforms}" />
+                </apex:selectList>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >AdUnit {!$ObjectType.AdUnit__c.fields.Path__c.label}</apex:outputLabel>
+                <apex:inputText value="{!code}" styleClass="field"/>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >AdUnit {!$ObjectType.AdUnit__c.fields.Level__c.label}</apex:outputLabel>
+                <apex:inputText value="{!level}" styleClass="field"/>
+            </apex:pageBlockSectionItem>
+            
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >{!$ObjectType.AdUnit__c.fields.CanalePrimario__c.label}</apex:outputLabel>
+                <apex:selectList value="{!canalePrimario}" size="1" styleClass="field">
+                    <apex:selectOptions value="{!canaliPrimari}" />
+                </apex:selectList>
+            </apex:pageBlockSectionItem>
+            
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >{!$ObjectType.Product2.fields.Formato__c.label}</apex:outputLabel>
+                <apex:selectList value="{!formato}" size="1" styleClass="field">
+                    <apex:selectOptions value="{!formati}" />
+                </apex:selectList>
+            </apex:pageBlockSectionItem>            
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >{!$ObjectType.Product2.fields.Size__c.label}</apex:outputLabel>
+                <apex:selectList value="{!size}" size="1" styleClass="field">
+                    <apex:selectOptions value="{!sizes}" />
+                </apex:selectList>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel >Solo attivi</apex:outputLabel>
+                <apex:inputCheckbox value="{!soloAttivi}"/>
+            </apex:pageBlockSectionItem> 
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+    
+    <apex:pageBlock id="adunittable" rendered="{!impressionsStimate.size > 0}" title="Risultati ricerca">
+        <apex:outputPanel id="actionPoller">
+            <apex:actionPoller enabled="{!isActionPollerEnabled}" action="{!checkIfReportIsComplete}" status="loading" interval="5" reRender="actionPoller"></apex:actionPoller>         
+            <apex:outputText rendered="{!NOT(isActionPollerEnabled) && NOT(ISBLANK(jobId))}">
+                <apex:actionFunction name="downloadReport" action="{!downloadReport}" reRender="actionPoller"></apex:actionFunction>
+                <script>
+                    downloadReport();
+                </script>
+            </apex:outputText>
+            <apex:outputText rendered="{!downloadFinished}">
+                <apex:actionFunction name="finalize" action="{!finalize}"></apex:actionFunction>
+                <script>
+                    finalize();
+                </script>
+            </apex:outputText>
+        </apex:outputPanel>                                 
+        <apex:pageBlockButtons location="top">              
+            <apex:commandButton value="Aggiorna da DFP" status="loading" onclick="j$('#ricerca').css('display', 'block');" action="{!startReportGeneration}" reRender="actionPoller"></apex:commandButton>
+            <apex:commandButton value="Salva" action="{!save}"></apex:commandButton>
+            <div id="ricerca" style="display:none;">
+                <c:Loading BackColor="#FFFFFF" borderColor="#FFFFFF" borderSize="0" height="50px" width="120px" ImageUrl="/img/loading32.gif" Message="Aggiornamento..." messageStyle="color:darkred;font-size:11pt;font-weight:bold;"/>
+            </div>
+        </apex:pageBlockButtons>
+        
+        
+        <!-- <apex:pageBlockTable value="{!impressionsStimate}" var="a">
+            <apex:column >
+                <apex:facet name="header">
+                    <input checked="checked" type="checkbox" id="allCheckbox" onchange="checkAll();" />
+                </apex:facet>
+                <apex:inputCheckbox styleClass="checkProd" value="{!a.checked}"/>
+            </apex:column>
+            <apex:column value="{!a.au.Product__r.Name}" />
+            <apex:column value="{!a.au.AdUnit__r.Path__c}" />
+            <apex:column value="{!a.au.AdUnit__r.CanalePrimario__c}" />
+            <apex:column value="{!a.au.Product__r.Size__c}" />
+            <apex:column value="{!a.au.Product__r.Formato__c}" />
+            <apex:column value="{!a.au.AdUnit__r.Level__c}" />                
+            <apex:column value="{!a.au.AdUnit__r.Target_platform__c}" />
+            <apex:column value="{!a.au.AdUnit__r.Website_partner__c}" />
+            <apex:column value="{!a.au.Feriali__c}" />
+            <apex:column value="{!a.au.Festive__c}" />
+        </apex:pageBlockTable> -->
+        
+        <apex:outputPanel layout="block" styleClass="box-body">
+            <table id="pages-table" class="pages-table">
+                <thead>
+                    <tr>
+                        <th class="col-check">
+                            <input type="checkbox" id="allCheckbox" onchange="checkAll();"/>
+                        </th>
+                        <th>{!$ObjectType.Product2.fields.name.label}</th>
+                        <th>{!$ObjectType.Product2.fields.IsActive.label}</th>
+                        <th>{!$ObjectType.AdUnit__c.fields.Target_platform__c.label}</th>
+                        <th>AdUnit {!$ObjectType.AdUnit__c.fields.Path__c.label}</th>
+                        <th>AdUnit {!$ObjectType.AdUnit__c.fields.Level__c.label}</th>
+                        <th>{!$ObjectType.AdUnit__c.fields.CanalePrimario__c.label}</th>
+                        <th>{!$ObjectType.Product2.fields.Formato__c.label}</th>
+                        <th>{!$ObjectType.Product2.fields.Size__c.label}</th>
+                        <th>{!$ObjectType.Impressions_Stimate__c.fields.Feriali__c.label}&nbsp;(vecchio valore)</th>
+                        <th>{!$ObjectType.Impressions_Stimate__c.fields.Festive__c.label}&nbsp;(vecchio valore)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <apex:repeat value="{!impressionsStimate1}" var="a">
+                        <tr class="table-row">
+                            <td style="text-align:center"><apex:inputCheckbox styleClass="checkProd" value="{!a.checked}"/></td>
+                            <td>{!a.au.Product__r.Name}</td>
+                            <td><apex:outputField value="{!a.au.Product__r.IsActive}"/></td>
+                            <td>{!a.au.AdUnit__r.Target_platform__c}</td>
+                            <td>{!a.au.AdUnit__r.Path__c}</td>
+                            <td>{!a.au.AdUnit__r.Level__c}</td>
+                            <td>{!a.au.AdUnit__r.CanalePrimario__c}</td>
+                            <td>{!a.au.Product__r.Formato__c}</td>
+                            <td>{!a.au.Product__r.Size__c}</td>
+                            <td>
+                                <apex:inputField value="{!a.auTmp.Feriali__c}" style="width:80px" onchange="j$(this).parents('.table-row').find('.checkProd').attr('checked','checked')"/>
+                                &nbsp;
+                                (<apex:outputField value="{!a.au.Feriali__c}"/>)
+                            </td>
+                            <td>
+                                <apex:inputField value="{!a.auTmp.Festive__c}" style="width:80px" onchange="j$(this).parents('.table-row').find('.checkProd').attr('checked','checked')"/>
+                                &nbsp;
+                                (<apex:outputField value="{!a.au.Festive__c}"/>)
+                            </td>    
+                        </tr>
+                    </apex:repeat>
+                    <apex:repeat value="{!impressionsStimate2}" var="a">
+                        <tr class="table-row">
+                            <td style="text-align:center"><apex:inputCheckbox styleClass="checkProd" value="{!a.checked}"/></td>
+                            <td>{!a.au.Product__r.Name}</td>
+                            <td><apex:outputField value="{!a.au.Product__r.IsActive}"/></td>
+                            <td>{!a.au.AdUnit__r.Target_platform__c}</td>
+                            <td>{!a.au.AdUnit__r.Path__c}</td>
+                            <td>{!a.au.AdUnit__r.Level__c}</td>
+                            <td>{!a.au.AdUnit__r.CanalePrimario__c}</td>
+                            <td>{!a.au.Product__r.Formato__c}</td>
+                            <td>{!a.au.Product__r.Size__c}</td>
+                            <td>
+                                <apex:inputField value="{!a.auTmp.Feriali__c}" style="width:80px" onchange="j$(this).parents('.table-row').find('.checkProd').attr('checked','checked')"/>
+                                &nbsp;
+                                (<apex:outputField value="{!a.au.Feriali__c}"/>)
+                            </td>
+                            <td>
+                                <apex:inputField value="{!a.auTmp.Festive__c}" style="width:80px" onchange="j$(this).parents('.table-row').find('.checkProd').attr('checked','checked')"/>
+                                &nbsp;
+                                (<apex:outputField value="{!a.au.Festive__c}"/>)
+                            </td>
+                        </tr>
+                    </apex:repeat>
+                </tbody>
+            </table>
+        </apex:outputPanel>
+    </apex:pageBlock>   
+    </apex:form>
+</apex:page>

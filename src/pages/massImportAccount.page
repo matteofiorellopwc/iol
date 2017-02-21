@@ -1,0 +1,26 @@
+<apex:page standardController="Account" recordSetVar="accounts" extensions="ExtensionMassImportAccount">
+    <apex:pageMessages escape="false"></apex:pageMessages>
+    <apex:form >
+        <apex:pageBlock >
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Trova anagrafiche sincronizzate da externalid" action="{!findCompanies}"/>
+                <apex:commandButton value="Trova anagrafiche dal nome" action="{!findCompaniesByName}"/>
+                <apex:commandButton value="Aggiorna anagrafiche sincronizzate" action="{!updateCompanies}"/>
+                <apex:commandButton value="Crea nuove anagrafiche" action="{!createCompanies}"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockTable style="width:600px;" value="{!accounts}" var="a">
+                <apex:column headervalue="Nome" style="width:150px;">
+                    <a href="/{!a.id}" >{!a.name}</a>
+                </apex:column>
+                <apex:column value="{!a.recordTypeId}" style="width:80px;" />
+                <apex:column value="{!a.Company_DFP_Type__c}" style="width:80px;" />
+                <apex:column headerValue="DFP URL" style="width:50px;" >
+                    <a href="https://www.google.com/dfp/5180#admin/companyDetail/id={!a.Id_DFP__c}" >{!a.Id_DFP__c}</a>
+                </apex:column>
+                <apex:column headerValue="Error" >
+                    <apex:outputText escape="false">{!accountErrorMap[a.id]}</apex:outputText>
+                </apex:column>
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+    </apex:form>    
+</apex:page>

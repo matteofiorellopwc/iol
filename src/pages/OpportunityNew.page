@@ -1,0 +1,34 @@
+<apex:page standardController="Opportunity" extensions="OpportunityNewExtension" showHeader="true" sidebar="true" action="{!doRedirect}">
+	<apex:form >
+		<apex:pageBlock title="Creazione nuova Opprtunità - Ricerca della Partita Iva" id="mainBlock">
+		<!-- BUTTONS -->
+			<apex:pageBlockButtons >
+				<apex:commandButton value="Crea Opportunità" action="{!searchAccount}" status="statusSearchAccount" reRender="mainBlock"/>
+				<apex:actionStatus id="statusSearchAccount">
+					<apex:facet name="start">
+						<apex:image value="/img/loading32.gif" width="20px" height="20px" />
+					</apex:facet>
+				</apex:actionStatus>
+			</apex:pageBlockButtons>
+
+		<!-- INPUT DATA -->
+			<apex:pageMessages />
+			<apex:pageBlockSection >
+				<apex:inputText value="{!pIva}" label="Partita IVA" />
+				<br />
+				<apex:inputField value="{!Opportunity.Name}" />
+				<br />
+				<apex:inputField value="{!Opportunity.OwnerId}" rendered="{!localU.isLocalAdminUser}"/>
+			</apex:pageBlockSection>
+		<!-- ACCOUNT RESULT - NOT WORKING-->
+		<!--
+			<apex:pageBlockSection rendered="{!isAccountFound}">
+				<apex:pageBlockTable var="key" value="{!mapAccountFound}">
+					<apex:column value="{!mapAccountFound[key].Name}" />
+					<apex:column value="{!mapAccountFound[key].Partita_Iva__c}" />
+				</apex:pageBlockTable>
+			</apex:pageBlockSection>
+		-->
+		</apex:pageBlock>
+	</apex:form>
+</apex:page>

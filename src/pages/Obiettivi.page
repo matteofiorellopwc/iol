@@ -1,0 +1,52 @@
+<apex:page > <!--controller="ControllerObiettivi"
+    <script type="text/javascript">
+        var __sfdcSessionId = '{!GETSESSIONID()}';
+        
+        function checkDelete(id){
+            if(confirm('sicuro?')){
+                sforce.connection.deleteIds([id]);
+                window.location.reload();
+            }
+        }
+    </script>
+       
+    <script src="/soap/ajax/25.0/connection.js" type="text/javascript"></script>
+<apex:form >
+    <apex:pageBlock id="table" >
+        <apex:pageBlockSection columns="1">
+            <apex:inputField value="{!ra.Anno__c}"/>
+            <apex:inputField value="{!ra.Mese__c}"/>
+            <apex:inputField value="{!ra.Tipo_obiettivo__c}" />
+            <apex:pageBlockSectionItem >
+                <apex:commandButton value="Cerca" reRender="table" status="status"/>
+                <apex:outputText >
+                    <apex:actionStatus startText="ricerca..."  stopText="" id="status"/>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+        <apex:pageBlockButtons location="bottom">
+                <apex:commandButton value="Crea nuovo" action="{!nuovoObiettivo}"/>
+        </apex:pageBlockButtons>
+        <apex:pageBlockTable value="{!obiettivi}" var="o" style="width:700px;">
+            <apex:column width="70px;">
+                <a href="/apex/obiettivo?id={!o.id}">edit</a>
+                <a href="#" onclick="checkDelete('{!o.id}');">delete</a>
+            </apex:column>
+            <apex:column width="70px;" value="{!o.Anno__c}" />
+            <apex:column width="70px;" value="{!o.Mese__c}" />            
+            <apex:column width="150px;" value="{!o.Tipo_obiettivo__c}" />
+            <apex:column width="150px;">
+                <apex:variable value="{!SUBSTITUTE(o.Tipo_obiettivo__c,' ','_')&'_formula__c'}" var="field"/>
+                {!o[field]}
+            </apex:column>
+            <apex:column value="{!o.Valore__c}" />
+        </apex:pageBlockTable>   
+        <apex:outputPanel rendered="{!obiettivi.size = rowLimit}" style="padding:10px;">
+            <apex:commandLink value="mostra più risultati" rerender="table" status="status">
+                <apex:param name="rowLimit" value="{!rowLimit+10}" assignTo="{!rowLimit}"/>
+            </apex:commandLink>
+        </apex:outputPanel> 
+    </apex:pageBlock>
+</apex:form>    
+-->
+</apex:page>

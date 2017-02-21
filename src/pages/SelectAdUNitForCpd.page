@@ -1,0 +1,52 @@
+<apex:page standardController="Opportunity" extensions="ExtensionAddProduct" action="{!checkInventory}">
+    <style>
+    .add-button {
+        background: url("/img/feeds/follow_sprite.png") no-repeat scroll 0 0 transparent;
+        height: 16px;
+        vertical-align: text-top;
+        width: 16px;
+        float: right;
+    }
+        
+    .col-action {
+        padding-right: 18px !important;
+        width: 32px;
+    }
+    
+    .no-results {
+    	text-align: center;
+    	color: red;
+    	font-size: 1.2em;
+    	font-weight: bold;
+    	padding: 10px;	
+    }
+    </style>
+    
+    <apex:form >
+    	<apex:sectionHeader title="Aggiungi prodotto" subtitle="Per questo prodotto CPD seleziona un Ad Unit"/>
+        <apex:pageBlock >
+            <apex:pageBlockButtons >
+                <apex:commandButton action="{!backToAddProduct}" value="Annulla"/>
+            </apex:pageBlockButtons>
+            
+            <apex:outputPanel layout="block" styleClass="no-results" rendered="{!impressionsStimateList.size = 0}">
+            	Nessun Ad Unit disponibile
+            </apex:outputPanel>
+			<apex:pageBlockTable value="{!impressionsStimateList}" var="is" rendered="{!impressionsStimateList.size > 0}">
+  				<apex:column styleClass="col-action">
+                    <apex:facet name="header">Aggiungi</apex:facet>
+					<apex:commandLink action="{!addProductCpd}">
+                        <apex:image value="/s.gif" styleClass="add-button"/>
+                        <apex:param name="selectedAdUnitId" value="{!is.AdUnit__c}" assignTo="{!selectedAdUnitId}" />
+                        <apex:param name="selectedFeriali" value="{!is.Feriali__c}" assignTo="{!selectedFeriali}" />
+                        <apex:param name="selectedFestive" value="{!is.Festive__c}" assignTo="{!selectedFestive}" />
+					</apex:commandLink>
+                </apex:column>
+                <apex:column value="{!is.AdUnit__r.Level__c}"/>
+				<apex:column value="{!is.AdUnit__r.Path__c}"/>
+                <apex:column value="{!is.Feriali__c}"/>
+                <apex:column value="{!is.Festive__c}"/>
+			</apex:pageBlockTable> 
+    	</apex:pageBlock> 
+    </apex:form>
+</apex:page>

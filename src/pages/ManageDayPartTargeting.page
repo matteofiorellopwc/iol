@@ -1,0 +1,54 @@
+<apex:page standardController="OpportunityLineItem" extensions="ManageDayPartTargetingExtension">
+<apex:pageBlock rendered="{!OpportunityLineItem.Delivery_Model__c != 'CPD'}"> 
+    Disponibile solo per CPD
+</apex:pageBlock>
+<apex:outputText rendered="{!OpportunityLineItem.Delivery_Model__c = 'CPD'}">
+    <apex:outputField value="{!OpportunityLineItem.OpportunityId}" rendered="false"/>
+    <apex:form >
+        <apex:pageBlock id="dayPartTable" >
+            <apex:pageBlockSection >
+                <apex:inputField value="{!OpportunityLineItem.TimeZoneDay__c}" required="true"/>
+                <apex:inputField value="{!OpportunityLineItem.Day_Part_Targeting_Type__c}" onchange="rerenderTableJs();" required="true"/>                
+                <br />
+                <apex:pageBlockSectionItem >
+                    <apex:outputPanel ><span style="display:none;" id="loading_span">Loading...</span></apex:outputPanel>
+                    <apex:outputPanel ><img src="/img/loading32.gif" id="loading_img" style="display:none;width:20px;" /></apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            <script>
+                function rerenderTableJs(){
+                    document.getElementById('loading_span').style.display = '';
+                    document.getElementById('loading_img').style.display = '';                    
+                    rerenderTable();
+                }
+            </script>
+            <apex:actionFunction name="rerenderTable" rerender="dayPartTable"/>
+            
+            <apex:outputPanel >
+                <apex:pageBlockTable rendered="{!OpportunityLineItem.Day_Part_Targeting_Type__c != 'Bands'}" value="{!allDayParts}" var="adp">
+                    <apex:column headerValue="Day" id="dayOfWeek" value="{!adp.dayOfWeek}"/>
+                    <apex:repeat value="{!i24}" var="i">
+                        <apex:column headerValue="{!TEXT(i)&'-'&TEXT(i+1)}">
+                            <apex:inputCheckbox value="{!adp.listDp[i].checked}"/>
+                        </apex:column>
+                    </apex:repeat>        
+                </apex:pageBlockTable>
+                
+                <apex:pageBlockTable rendered="{!OpportunityLineItem.Day_Part_Targeting_Type__c = 'Bands'}" style="width:450px;" value="{!allDayBandParts}" var="adp">
+                    <apex:column headerValue="Day" id="dayOfWeek" value="{!adp.dayOfWeek}"/>
+                    <apex:repeat value="{!i3}" var="i">
+                        <apex:column headerValue="{!TEXT(i*8)&'-'&TEXT(i*8+8)}">
+                            <apex:inputCheckbox value="{!adp.listDp[i].checked}"/>
+                        </apex:column>
+                    </apex:repeat>        
+                </apex:pageBlockTable>            
+            </apex:outputPanel>                
+          
+
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton rendered="{!OpportunityLineItem.Day_Part_Targeting_Type__c != ''}" action="{!customSave}" value="Save" />
+            </apex:pageBlockButtons>            
+        </apex:pageBlock>        
+    </apex:form>        
+</apex:outputText> 
+</apex:page>

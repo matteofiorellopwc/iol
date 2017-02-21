@@ -1,0 +1,441 @@
+<apex:page controller="ControllerGlobalCloseAndWin">
+    
+    <script src="/soap/ajax/27.0/connection.js" type="text/javascript"></script>
+    <script src="/soap/ajax/27.0/apex.js" type="text/javascript"></script>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <script type="text/javascript">
+    
+    Visualforce.remoting.timeout = 120000;
+    
+    j$ = jQuery.noConflict();
+     
+    function init(){                
+        setTimeout(function(){step0()},500);        
+    }
+    
+    j$(document).ready(function(){
+        j$('#col0_load').show();
+        j$('#col0_wait').hide();
+        step0();  //in component cpdavailability
+    });
+    
+    function errorCpdCallback(errors){
+        j$('#col0_error').show();
+        j$('.errorDetail0').show();
+        j$('#backToOpp').show();
+        j$('#col0_load').hide();
+        j$('.errorDetail0').html(errors);
+        j$('.errorDetail0_button').show();
+    }
+    
+    //remote VF:
+    function step0(){
+        
+        var arg = '{!Id}';    
+        j$('#col0_load').show();
+        j$('#col0_wait').hide();
+        
+        
+        var namespace = '{!$RemoteAction.ControllerGlobalCloseAndWin.chiudiEVinciStep0}';
+
+        Visualforce.remoting.Manager.invokeAction(
+            namespace,
+            arg,                
+            function(result, event){
+                if (result != null && !result.isError) {
+                    //ok, step executed with no errors
+                    j$('#col0_done').show();
+                    j$('#col0_load').hide();
+                    j$('#col1_load').show();
+                    j$('#col1_wait').hide();
+                    step1();
+                } else {
+                    //error
+                    j$('#col0_error').show();
+                    j$('.errorDetail0').show();
+                    j$('#backToOpp').show();
+                    j$('#col0_load').hide();
+                    var mes;
+                    if(result != null && result.message != null){
+                        mes = result.message;
+                    }else{
+                        mes = event.message;
+                    }
+                    var err = j$('<div/>').html(mes).text();
+                    j$('.errorDetail0').html(err);
+                    j$('.errorDetail0_button').show();
+                }               
+            }, 
+            {escape: true}
+        ); 
+    }
+    function step1(){
+        
+        var arg = '{!Id}';    
+        j$('#col1_load').show();
+        j$('#col1_wait').hide();
+        
+        
+        var namespace = '{!$RemoteAction.ControllerGlobalCloseAndWin.chiudiEVinciStep1}';
+
+        Visualforce.remoting.Manager.invokeAction(
+            namespace,
+            arg,                
+            function(result, event){
+                if (result != null && !result.isError) {
+                    //ok, step executed with no errors
+                    checkAvailabilityJs();
+                } else {
+                    //error
+                    j$('#col1_error').show();
+                    j$('.errorDetail1').show();
+                    j$('#backToOpp').show();
+                    j$('#col1_load').hide();
+                    var mes;
+                    if(result != null && result.message != null){
+                        mes = result.message;
+                    }else{
+                        mes = event.message;
+                    }
+                    var err = j$('<div/>').html(mes).text();
+                    j$('.errorDetail1').html(err);
+                    j$('.errorDetail1_button').show();
+                }               
+            }, 
+            {escape: true}
+        ); 
+    }
+    
+    function step2(){
+        var arg = '{!Id}';        
+        var namespace = '{!$RemoteAction.ControllerGlobalCloseAndWin.chiudiEVinciStep2}';
+
+        j$('#col1_done').show();
+        j$('#col1_load').hide();
+        j$('#col2_load').show();
+        j$('#col2_wait').hide();
+
+        Visualforce.remoting.Manager.invokeAction(
+            namespace,
+            arg,                
+            function(result, event){
+                if (result != null && !result.isError) {
+                    //ok, step executed with no errors
+                    j$('#col2_done').show();
+                    j$('#col2_load').hide();
+                    j$('#col3_load').show();
+                    j$('#col3_wait').hide();
+                    step3();    
+                } else {
+                    //error
+                    j$('#col2_error').show();
+                    j$('.errorDetail2').show();
+                    j$('#col2_load').hide();
+                    j$('#backToOpp').show();
+                    var mes;
+                    if(result != null && result.message != null){
+                        mes = result.message;
+                    }else{
+                        mes = event.message;
+                    }
+                    var err = j$('<div/>').html(mes).text();
+                    j$('.errorDetail2').html(err);
+                    j$('.errorDetail2_button').show();
+                }
+            }, 
+            {escape: true}
+        ); 
+    }
+    
+    function step3(){
+        var arg = '{!Id}';        
+        var namespace = '{!$RemoteAction.ControllerGlobalCloseAndWin.chiudiEVinciStep3}';
+
+        Visualforce.remoting.Manager.invokeAction(
+            namespace,
+            arg,                
+            function(result, event){
+                if (result != null && !result.isError) {
+                    //ok, step executed with no errors
+                    j$('#col3_done').show();
+                    j$('#col3_load').hide();
+                    j$('#col4_load').show();
+                    j$('#col4_wait').hide();
+                    step4();    
+                } else {
+                    //error
+                    j$('#col3_error').show();
+                    j$('.errorDetail3').show();
+                    j$('#col3_load').hide();
+                    j$('#backToOpp').show();
+                    var mes;
+                    if(result != null && result.message != null){
+                        mes = result.message;
+                    }else{
+                        mes = event.message;
+                    }
+                    var err = j$('<div/>').html(mes).text();
+                    j$('.errorDetail3').html(err);                    
+                }
+            }, 
+            {escape: true}
+        ); 
+    }   
+    
+     function step4(){
+        var arg = '{!Id}';        
+        var namespace = '{!$RemoteAction.ControllerGlobalCloseAndWin.chiudiEVinciStep4}';
+
+        Visualforce.remoting.Manager.invokeAction(
+            namespace,
+            arg,                
+            function(result, event){
+                if (result != null && !result.isError) {
+                    //ok, execution complete!
+                    j$('#col4_done').show();
+                    j$('#col4_load').hide();  
+                    //redirect back to opportunity
+                    j$('#backToOpp').show();
+                } else {
+                    //error
+                    j$('#col4_error').show();
+                    j$('.errorDetail4').show();
+                    j$('#col4_load').hide();
+                    j$('#backToOpp').show();
+                    var mes;
+                    if(result != null && result.message != null){
+                        mes = result.message;
+                    }else{
+                        mes = event.message;
+                    }
+                    var err = j$('<div/>').html(mes).text();
+                    j$('.errorDetail4').html(err);
+                    j$('.errorDetail4_button').show();
+                }
+            }, 
+            {escape: true}
+        ); 
+    }
+    
+    //init(); -> call step 1 in document ready
+    
+    </script>
+    <style>
+        .container{         
+            width: 500px;
+            margin: 0px auto;
+            margin-top: 10px;
+        }
+        .column{
+            width: 350px;
+            margin: 20px auto;
+        }
+        
+        .column table{
+        }
+        
+        .class{
+            display:none;
+        }
+        
+        .errorDetail0, .errorDetail1, .errorDetail2, .errorDetail3, .errorDetail4{
+            border: 1px solid #CC0000;
+            margin-top: 5px;
+            padding: 5px;
+            background: #FFFFCC;
+            border-radius: 4px 4px 4px 4px;
+            
+        }
+        
+        td.labelCol{
+            width: 160px!important;
+        }
+        
+        td.data2Col{
+            width: 100px!important;
+        }
+        
+        .col-step {
+            width: 50px;
+        }
+        
+        .col-desc {
+            width: 270px;
+        }
+    
+    
+    </style>
+    
+    <BODY> 
+        <apex:messages /> 
+        <apex:form >
+        <c:CpdAvailability functionOk="step2" showStatus="false" functionError="errorCpdCallback" />
+        </apex:form>
+        
+        <div class="container" id="columns">
+            <apex:pageBlock title="Chiudi e Vinci">
+                <div class="column" id="col0">
+                    <table border="0" >
+                        <tr>
+                            <td class="col-step">
+                                <b>Step 1</b>
+                            </td>
+                            <td class="col-desc">
+                                <div id="col0_desc"> Aggiornamento forecast</div>
+                            </td>
+                            <td>
+                                <div id="col0_wait"><img src="{!$Resource.hourglass}" width="16px"/></div>
+                                <div id="col0_load" class="hidden"><img src="{!$Resource.loading}" width="16px"/></div> 
+                                <div id="col0_done" class="hidden"><img src="/img/msg_icons/confirm16.png"/></div>
+                                <div id="col0_error" class="hidden"><img src="/img/msg_icons/error16.png"/></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">        
+                                <div class="errorDetail0 hidden"></div> 
+                                <div class="errorDetail0_button hidden">
+                                    <apex:form >
+                                        <apex:commandButton value="Chiudi e vinci" action="{!saveAndReload}"/>
+                                    </apex:form>
+                                </div>   
+                            </td>
+                        </tr>
+                    </table>                    
+                                            
+                                    
+                </div>
+
+                <div class="column" id="col1">
+                    <table border="0" >
+                        <tr>
+                            <td class="col-step">
+                                <b>Step 2</b>
+                            </td>
+                            <td class="col-desc">
+                                <div id="col1_desc"> Esecuzione di tutti i controlli lato Salesforce</div>
+                            </td>
+                            <td>
+                                <div id="col1_wait"><img src="{!$Resource.hourglass}" width="16px"/></div>
+                                <div id="col1_load" class="hidden"><img src="{!$Resource.loading}" width="16px"/></div> 
+                                <div id="col1_done" class="hidden"><img src="/img/msg_icons/confirm16.png"/></div>
+                                <div id="col1_error" class="hidden"><img src="/img/msg_icons/error16.png"/></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">        
+                                <div class="errorDetail1 hidden"></div> 
+                                <div class="errorDetail1_button hidden">
+                                    <apex:form >
+                                        <apex:pageBlockSection columns="1" >
+                                            <apex:inputField id="skipDispoCpd" value="{!o.skipDispoCPD__c}" />
+                                        </apex:pageBlockSection>
+                                        <apex:commandButton value="Chiudi e vinci" action="{!saveAndReload}"/>
+                                    </apex:form>
+                                </div>   
+                            </td>
+                        </tr>
+                    </table>                    
+                                            
+                                    
+                </div>
+                
+                <div class="column" id="col2">
+                    <table border="0">
+                        <tr>
+                            <td class="col-step">
+                                <b>Step 3</b>
+                            </td>
+                            <td class="col-desc">
+                                <div id="col2_desc"> Sincronizzazione con il sistema remoto DFP</div>
+                            </td>
+                            <td>
+                                <div id="col2_wait"><img src="{!$Resource.hourglass}" width="16px"/></div>
+                                <div id="col2_load" class="hidden"><img src="{!$Resource.loading}" width="16px"/></div> 
+                                <div id="col2_done" class="hidden"><img src="/img/msg_icons/confirm16.png"/></div>
+                                <div id="col2_error" class="hidden"><img src="/img/msg_icons/error16.png"/></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">          
+                                <div class="errorDetail2 hidden"></div>
+                                <div class="errorDetail2_button hidden">
+                                    <apex:form >
+                                        <apex:commandButton value="Chiudi e vinci" action="{!saveAndReload}"/>
+                                    </apex:form>
+                                </div> 
+                            </td>
+                        </tr>
+                    </table>            
+                </div>
+                
+                <div class="column" id="col3">
+                    <table border="0">
+                        <tr>
+                            <td class="col-step">
+                                <b>Step4</b>
+                            </td>
+                            <td class="col-desc">
+                                <div id="col3_desc"> Sincronizzazione con il sistema remoto OAS</div>
+                            </td>
+                            <td>
+                                <div id="col3_wait"><img src="{!$Resource.hourglass}" width="16px"/></div>
+                                <div id="col3_load" class="hidden"><img src="{!$Resource.loading}" width="16px"/></div> 
+                                <div id="col3_done" class="hidden"><img src="/img/msg_icons/confirm16.png"/></div>
+                                <div id="col3_error" class="hidden"><img src="/img/msg_icons/error16.png"/></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">         
+                                <div class="errorDetail3 hidden"></div>
+                            </td>
+                        </tr>
+                    </table>            
+                </div>
+                
+                <div class="column" id="col4">
+                    <table border="0">
+                        <tr>
+                            <td class="col-step">
+                                <b>Step 5</b>
+                            </td>
+                            <td class="col-desc">
+                                <div id="col4_desc"> Salva e conferma</div> 
+                            </td>
+                            <td>
+                                <div id="col4_wait"><img src="{!$Resource.hourglass}" width="16px"/></div>
+                                <div id="col4_load" class="hidden"><img src="{!$Resource.loading}" width="16px"/></div> 
+                                <div id="col4_done" class="hidden"><img src="/img/msg_icons/confirm16.png"/></div>
+                                <div id="col4_error" class="hidden"><img src="/img/msg_icons/error16.png"/></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">         
+                                <div class="errorDetail4 hidden"></div>
+                                <div class="errorDetail4_button hidden">
+                                    <apex:form >
+                                        <apex:pageBlockSection columns="1" >
+                                            <apex:inputField id="skipDispoCpd" value="{!o.skipDispoCPD__c}" />
+                                        </apex:pageBlockSection>
+                                        <apex:commandButton value="Chiudi e vinci" action="{!saveAndReload}"/>
+                                    </apex:form>
+                                </div> 
+                            </td>
+                        </tr>                    
+                    </table>
+                </div>
+        
+                <div style="clear:both"></div>  
+                
+                <div id="backToOpp" class="hidden">
+                    <p/>
+                    <a href="{!$Site.prefix}/{!Id}">torna all'Opportunità</a>
+                </div>
+            
+            
+            </apex:pageBlock>
+        </div>
+            
+        
+    </BODY>
+
+</apex:page>

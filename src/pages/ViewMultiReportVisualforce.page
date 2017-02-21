@@ -1,0 +1,12 @@
+<apex:page sidebar="false">
+    <table style="width:3630px; vertical-align: top">
+        <tr>
+            <td>
+                <apex:iframe id="report1" src="/00O20000005I9l6?isdtp=nv" width="2450px" height="1660px" scrolling="true"/>
+            </td>
+            <td>
+                <apex:iframe id="report2" src="/00O20000005I8td?isdtp=nv" width="1174px" height="1660px" scrolling="true"/>
+            </td>
+        </tr>
+    </table>  
+</apex:page>

@@ -1,0 +1,38 @@
+<apex:page controller="ControllerMiniLineItem" showHeader="false" contentType="text/plain"> 
+    <style>
+    
+        .bPageBlock .labelCol{
+            font-size: 100%;
+        }
+        
+        .divpblock{
+            //width: 500px;
+        }
+
+    </style>
+    <div class="divpblock">
+        <apex:pageBlock >
+            <apex:pageBlockSection columns="1" >
+                <apex:outputField value="{!li.name}" />
+                <apex:outputField value="{!li.Product__c}" />
+                <apex:outputField value="{!li.opportunity__r.name}" />
+                <apex:outputField value="{!li.opportunity__r.stageName}" />
+                <apex:outputField value="{!li.opportunity__r.Venditore__c}" />
+                <apex:outputField value="{!li.Start_Date__c}"/>
+                <apex:outputField value="{!li.End_Date__c}"/>
+                <apex:outputField value="{!li.Prezzo_net_net__c}" />
+                <apex:outputField value="{!li.Quantita__c}"/>
+                <apex:outputField value="{!li.Goal__c}"/>
+                <apex:outputField value="{!li.Totale__c}"/>
+                <apex:pageBlockSectionItem rendered="{!adUnitIncluded != ''}">
+                    Ad Units inclusi:
+                    <apex:outputText escape="false" value="{!adUnitIncluded}" />                
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem rendered="{!adUnitExcluded != ''}">
+                    Ad Units esclusi:
+                    <apex:outputText escape="false" value="{!adUnitExcluded}" />                
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+        </apex:pageblock>
+    </div>        
+</apex:page>

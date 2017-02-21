@@ -1,0 +1,174 @@
+<apex:component >
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    
+    <apex:attribute name="ControllerRevenueApplication" type="ControllerRevenueApplication" description="istanza di ControllerRevenueApplication" />
+    <apex:attribute name="type" type="String" default="LineItem" description="LineItem o Pacchetto"/>
+    <apex:attribute name="readOnly" type="boolean" default="false" description=""/>
+    <apex:attribute name="parentObj" type="sobject" description="Line item o pacchetto opportunità"/>
+    <apex:attribute name="canDelete" type="boolean" default="false" description=""/>
+    <apex:attribute name="isSalesLocal" type="boolean" default="false" description="true se l'utente è un venditore local" />
+    <apex:attribute name="isVetrinaLocal" type="boolean" default="false" description="true se prodotto vetrina local" />
+ 
+    <apex:outputPanel id="revenueApplication">
+        <apex:variable value="{!OR(ControllerRevenueApplication.li.ProductFamily__c = 'Search',ControllerRevenueApplication.li.ProductFamily__c = 'Placeholder')}" var="isSearchOrPlaceholder"/>
+        <apex:actionFunction name="deleteRevenueApplicationCustomJs" action="{!ControllerRevenueApplication.deleteRevenueApplicationCustom}" reRender="revenueApplication" >
+            <apex:param name="indexRevenueToDelete" assignTo="{!ControllerRevenueApplication.indexRevenueToDelete}" value=""/>
+        </apex:actionFunction>
+        <apex:actionFunction name="applicaDifferenzaRevenueJs" action="{!ControllerRevenueApplication.applicaDifferenza}" reRender="revenueApplication" >
+            <apex:param name="indexApplicaDifferenza" assignTo="{!ControllerRevenueApplication.indexApplicaDifferenza}" value=""/>
+        </apex:actionFunction>
+        <apex:actionFunction name="rerenderPageBlock" rerender="pageBlock"/>
+        <script>
+            function deleteRevenueApplicationCustom(idCol){
+                if(!confirm('Sicuro?')){  
+                    return false;
+                }
+                idCol = idCol.replace(':col','');
+                rowNum = idCol.substr(idCol.lastIndexOf(":")+1);
+
+                showLoadingRevenueApplication();
+                deleteRevenueApplicationCustomJs(rowNum);
+            }
+            function applicaDifferenzaRevenue(idCol){
+                idCol = idCol.replace(':colVal','');
+                rowNum = idCol.substr(idCol.lastIndexOf(":")+1);
+
+                showLoadingRevenueApplication();
+                applicaDifferenzaRevenueJs(rowNum);
+            }
+        </script>
+        <apex:pageBlockSection title="{!$Label.RevenueApplications}" columns="1" >
+            <apex:pageMessage title="Attenzione" strength="2" rendered="{!isSalesLocal || isVetrinaLocal}" detail="Le {!$Label.RevenueApplications} saranno calcolate automaticamente al salvataggio del Line Item" severity="info" />
+            <apex:pageBlockSectionItem >
+                <apex:outputText >
+                    <script>
+                        function updateRevenueApplication(){
+                            showLoadingRevenueApplication();
+                            updateRevenueApplicationjs();
+                        }
+                        
+                        function showLoadingRevenueApplication(){
+                            j$('#loadingRevenueApplication').show();
+                        }
+                    </script>
+                    <apex:actionFunction name="updateRevenueApplicationjs" action="{!ControllerRevenueApplication.checkTotaliAndUpdateRevenueApplication}" reRender="pageBlock" />
+                </apex:outputText>
+                <apex:outputText rendered="{!NOT(readOnly)}" >
+                    <apex:commandButton value="Crea da date" onclick="if('{!ControllerRevenueApplication.revenueApplications.size}' != '0'){if(!confirm('Le modifiche verranno eliminate!')){return false;}}showLoadingRevenueApplication();" action="{!ControllerRevenueApplication.creaRevenueApplicationDaDate}" reRender="pageBlock" rendered="{!NOT(ControllerRevenueApplication.isFatturato)}" />
+                    <apex:commandButton value="Aggiungi riga personalizzata" action="{!ControllerRevenueApplication.addRevenueApplicationCustom}" reRender="revenueApplication" onclick="showLoadingRevenueApplication();" rendered="{!ControllerRevenueApplication.revenueApplications.size > 0}" />
+                    <img id="loadingRevenueApplication" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem rendered="{!AND(NOT(readOnly),NOT(ControllerRevenueApplication.isFatturato))}" >
+                <apex:outputLabel value="{!$ObjectType.LineItem__c.fields.ModalitaEditRevenue__c.label}" />
+                <apex:selectRadio layout="pageDirection" value="{!parentObj['modalitaEditRevenue__c']}" onchange="showLoadingRevenueApplication();rerenderPageBlock();" >
+                    <apex:selectOptions value="{!ControllerRevenueApplication.modalitaOption}" />
+                </apex:selectRadio>
+            </apex:pageBlockSectionItem>    
+            <apex:outputText rendered="{!ControllerRevenueApplication.revenueApplications.size > 0}">
+                <apex:pageBlockTable value="{!ControllerRevenueApplication.revenueApplications}" var="ra" style="width:600px;" >
+                    <apex:facet name="header">
+                        {!$Label.RevenueApplications} positive
+                    </apex:facet>
+                    <apex:column id="col" width="35px">
+                        <apex:outputPanel rendered="{!AND(ISBLANK(ControllerRevenueApplication.li.Pacchetto_Combo_Opportunity__c),ra.Custom__c,isblank(ra.Ticket_Fatturazione__c),canDelete)}">
+                            <a style="cursor:pointer;" onclick="deleteRevenueApplicationCustom('{!$Component.col}')">delete</a>
+                        </apex:outputPanel>
+                    </apex:column>
+                    <apex:column headerValue="Mese" width="90px">
+                        <apex:outputField rendered="{!OR(NOT(ra.Custom__c),not(isblank(ra.Ticket_Fatturazione__c)),readOnly)}" value="{!ra.Mese__c}"/>
+                        <apex:inputField styleClass="readonlyForPack" rendered="{!AND(ra.Custom__c,isblank(ra.Ticket_Fatturazione__c),not(readOnly))}" value="{!ra.Mese__c}"/>                
+                    </apex:column>
+                    <apex:column headerValue="Anno" width="80px">
+                        <apex:outputField rendered="{!OR(NOT(ra.Custom__c),not(isblank(ra.Ticket_Fatturazione__c)),readOnly)}" value="{!ra.Anno__c}" />
+                        <apex:inputField style="width:70px;" styleClass="readonlyForPack" rendered="{!AND(ra.Custom__c,isblank(ra.Ticket_Fatturazione__c),not(readOnly))}" value="{!ra.Anno__c}" />                
+                    </apex:column>
+                    <apex:column headerValue="Percentuale applicata" width="120px">
+                        <!--
+                            Inserisco percentuale se:
+                                - modalità edit revenue = percentuale
+                                - mese non è totale
+                                - non ho fatturato nessuna revenue di quel line item/pacchetto
+                        -->
+                        <apex:inputField styleClass="readonlyForPack" style="width:70px;" value="{!ra.Percentuale_applicata__c}" rendered="{!AND(parentObj['modalitaEditRevenue__c'] = 'Percentuale',ra.Mese__c <> 'Totale',not(ControllerRevenueApplication.isFatturato),not(readOnly))}" onchange="updateRevenueApplication();" />
+                        <apex:outputPanel style="{!IF(AND(ra.Percentuale_applicata__c <> 100,ra.Mese__c = 'Totale'),'color:red;','')}{!IF(AND(ra.Percentuale_applicata__c = 100,ra.Mese__c = 'Totale'),'color:green;','')}" 
+                            rendered="{!OR(ra.Mese__c = 'Totale',ControllerRevenueApplication.isFatturato,parentObj['modalitaEditRevenue__c'] <> 'Percentuale',readOnly)}">
+                            <apex:outputField value="{!ra.Percentuale_applicata__c}" />
+                        </apex:outputPanel>
+                    </apex:column>
+                    <!--
+                        Inserisco valore se:
+                            (
+                             modalità edit revenue = valore
+                                 and 
+                             ho fatturato almeno una revenue di quel line item/pacchetto
+                            )
+                            or (mese non è totale)
+                    -->                    
+                    <apex:column headerValue="Valore" id="colVal" > 
+                        <apex:outputPanel rendered="{!AND(OR(parentObj['modalitaEditRevenue__c'] = 'Valore',ControllerRevenueApplication.isFatturato),ISBLANK(ra.Ticket_Fatturazione__c),ra.Mese__c <> 'Totale',not(readOnly))}">
+                            <apex:inputField styleClass="readonlyForPack"  id="inputValore" value="{!ra.Valore__c}" onchange="updateRevenueApplication();" />
+                            <br />
+                            <apex:outputText rendered="{!AND(ControllerRevenueApplication.totalDiffSumRevenue <> 0,NOT(ISBLANK(ControllerRevenueApplication.totalDiffSumRevenue)))}">
+                                <a style="cursor:pointer;" onclick="applicaDifferenzaRevenue('{!$Component.colVal}')">applica differenza con totale</a>
+                            </apex:outputText>
+                        </apex:outputPanel>
+                        <apex:outputPanel rendered="{!OR(parentObj['modalitaEditRevenue__c'] <> 'Valore',not(isblank(ra.Ticket_Fatturazione__c)),ra.Mese__c = 'Totale',readOnly)}" style="{!IF(ra.Mese__c <> 'Totale','',IF(ra.Valore__c <> IF(type='LineItem',ControllerRevenueApplication.li.Totale__c,ControllerRevenueApplication.pco.Totale__c),'color:red;','color:green;'))}" >
+                            <apex:outputField value="{!ra.Valore__c}" />
+                            <apex:outputText rendered="{!AND(ra.Mese__c = 'Totale')}" >
+                                <apex:outputText rendered="{!ra.Valore__c <> IF(type='LineItem',ControllerRevenueApplication.li.Totale__c,ControllerRevenueApplication.pco.Totale__c)}">
+                                    <br />(DIFFERENZA CON TOTALE&nbsp;<c:formatCurrency value="{!ABS(ra.Valore__c - IF(type='LineItem',ControllerRevenueApplication.li.Totale__c,ControllerRevenueApplication.pco.Totale__c))}" showDecimal="true" />)
+                                </apex:outputText>   
+                                <br />
+                                                                               
+                            </apex:outputText>
+                        </apex:outputPanel>
+                    </apex:column>
+                    <apex:column width="90px" value="{!ra.Ticket_Fatturazione__c}"/>
+                    <!--
+                    <apex:column headerValue="Valore di commisioning" rendered="{!AND(type='LineItem',NOT(isSearchOrPlaceholder),NOT(ISBLANK(ControllerRevenueApplication.li.opportunity__r.Agenzia_di_riferimento__c)))}" >
+                        <apex:outputPanel style="{!IF(ra.Mese__c <> 'Totale','',IF(ra.Valore_di_commisioning__c <> ControllerRevenueApplication.li.Totale__c*ControllerRevenueApplication.li.Percentuale_commisioning_agenzia__c/100,'color:red;','color:green;'))}" >
+                            <apex:outputField value="{!ra.Valore_di_commisioning__c}" />
+                        </apex:outputPanel>
+                    </apex:column>                    
+                    -->
+                    <!--
+                    <apex:column headerValue="Numero di giorni">
+                        <apex:outputField styleClass="readonlyForPack" value="{!ra.Numero_giorni__c}" />
+                    </apex:column>
+                    -->
+                    <!-- //Numero click e impression dovranno diventare formule
+                    <apex:column headerValue="numero di clicks" rendered="{!AND(type='LineItem',ControllerRevenueApplication.li.Delivery_Model__c = 'CPC')}" >
+                        <apex:inputField styleClass="readonlyForPack" value="{!ra.Numero_click__c}" rendered="{!AND(ra.Mese__c <> 'Totale',isblank(ra.Ticket_Fatturazione__c))}"/>
+                        <apex:outputField value="{!ra.Numero_click__c}" rendered="{!OR(ra.Mese__c = 'Totale',not(isblank(ra.Ticket_Fatturazione__c)))}"/>
+                    </apex:column>
+                    <apex:column headerValue="numero di Impressions" rendered="{!AND(type="LineItem",ControllerRevenueApplication.li.Delivery_Model__c="CPM",ControllerRevenueApplication.li.Type_DFP__c <> 'AD_EXCHANGE',ControllerRevenueApplication.li.Type_DFP__c <> 'ADSENSE')}">
+                        <apex:outputPanel style="{!IF(ra.Mese__c <> 'Totale','',IF(ra.Numero_impression__c <> ControllerRevenueApplication.li.Quantita__c,'color:red;','color:green;'))}" >
+                            <apex:outputField value="{!ra.Numero_impression__c}" />
+                        </apex:outputPanel>
+                    </apex:column>
+                    -->                    
+                </apex:pageBlockTable>
+            </apex:outputText>
+            <apex:outputText rendered="{!ControllerRevenueApplication.revenueApplicationsMinorRicavo.size > 0}">
+                <apex:pageBlockTable title="Minor Ricavi" value="{!ControllerRevenueApplication.revenueApplicationsMinorRicavo}" var="ra" style="width:600px;" >
+                    <apex:facet name="header">
+                        {!$Label.RevenueApplications} minor ricavi
+                    </apex:facet>
+                    <apex:column width="35px" />
+                    <apex:column headerValue="Mese" width="90px" value="{!ra.Mese__c}" />
+                    <apex:column headerValue="Anno" width="80px" value="{!ra.Anno__c}" />
+                    <apex:column headerValue="Percentuale applicata" width="120px" value="{!ra.Percentuale_applicata__c}" />
+                    <apex:column headerValue="Valore" value="{!ra.Valore__c}" />
+                    <apex:column width="90px" value="{!ra.Ticket_Fatturazione__c}"/> 
+                </apex:pageBlockTable>
+                <div style="width:598px;border:1px solid red;background-color:white;height: 22px;margin-top: 5px;font-weight: bold;">
+                    <div style="width:35px;float:left;padding: 4px 2px 4px 5px;">&nbsp;</div>
+                    <div style="width:305px;float:left;padding: 4px 2px 4px 5px;">Totale {!$Label.RevenueApplications}</div>
+                    <div style="width:90px;float:left;padding: 4px 2px 4px 5px;"><apex:outputField value="{!ControllerRevenueApplication.li.TotaleRevenueApplication__c}" /></div>
+                    <div style="width:90px;float:left;padding: 4px 2px 4px 5px;">&nbsp;</div>
+                </div>
+            </apex:outputText>                             
+        </apex:pageBlockSection>
+    </apex:outputPanel>        
+</apex:component>

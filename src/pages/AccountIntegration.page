@@ -1,0 +1,70 @@
+<apex:page standardController="Account" extensions="ExtensionAccountIntegration">
+
+	<style>
+		.img-loading {
+            width: 16px;
+            vertical-align: middle;    
+        }
+        
+        .pb-header {
+        	padding: 10px;
+        }
+        
+        #command-bar {
+        	text-align: center;
+        }
+        
+        #command-bar .btn{
+        	margin: 0 5px;
+        }
+        
+        #status-bar {
+        	text-align: center;
+        	font-weight: bold;
+        	color: green;
+        }
+        
+        #dfp-status {
+        	padding: 10px;
+        }
+        
+        #oas-status {
+        	padding: 10px;
+        }
+	</style>
+	 
+    <apex:pageMessages escape="false"></apex:pageMessages>
+    <a href="/{!Account.id}">indietro</a>
+    <apex:form >
+    	<apex:actionFunction name="upsertCompanyOas" status="oasStatus" action="{!upsertCompanyOas}" rerender="page"/>
+    	
+    	 <apex:pageBlock id="page">
+			<div id="command-bar">
+    	 		<apex:commandButton action="{!upsertCompanyDfp}" oncomplete="checkDfpError()" onclick="this.disabled=true" status="dfpStatus" value="Sincronizza" rerender="successDfp, dfp-section"/>
+    	 	</div>
+    	 	
+    	 	<div id="dfp-status">
+	    	 	<apex:actionStatus id="dfpStatus">
+		        	<apex:facet name="start">
+		            	Sincronizzazione con DFP
+						&nbsp;&nbsp;
+		                <img src="/img/loading32.gif" class="img-loading" border="0"/>
+		            </apex:facet>
+		            <apex:facet name="stop">
+		            	Sincronizzazione con DFP
+		            </apex:facet>
+		       </apex:actionStatus>
+		       <apex:outputPanel id="successDfp">
+		       		&nbsp;&nbsp;
+					<apex:image value="/img/msg_icons/confirm16.png" rendered="{!successDfp}"/>		
+		       </apex:outputPanel>
+	       </div>
+	       
+	       <apex:outputPanel layout="block" id="dfp-section">
+            	<apex:outputText rendered="{!NOT(successDfp)}">
+            		<apex:pagemessages escape="false"/>
+            	</apex:outputText> 	
+           </apex:outputPanel>
+    	 </apex:pageBlock>  	 
+    </apex:form>
+</apex:page>

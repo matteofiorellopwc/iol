@@ -1,0 +1,19 @@
+<apex:page >
+    <style>
+        .conf-prod-grid {
+            font-size: 1.2em;
+            border-spacing: 5px;
+        }
+    </style>
+    <apex:sectionHeader subtitle="Verifica Disponibilità"/>
+    <apex:pageBlock >
+        <apex:panelGrid columns="1" styleClass="conf-prod-grid">
+            <apex:panelGroup >
+                1.&nbsp;<apex:outputLink value="/apex/CPMAvailability">Verifica Disponibilità CPM</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                2.&nbsp;<apex:outputLink value="/apex/CPDAvailability">Verifica Disponibilità CPD (versione provvisoria)</apex:outputLink>
+            </apex:panelGroup>
+        </apex:panelGrid>
+    </apex:pageBlock>
+</apex:page>

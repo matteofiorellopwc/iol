@@ -1,0 +1,120 @@
+<apex:page standardController="TechnologyTargeting__c" extensions="NewTechnologyTargetingExtension">
+<apex:pageMessages ></apex:pageMessages>
+
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+
+<style>
+    #tectable_previous,#tectable_next{
+        padding:5px;
+    }
+    
+    .sorting_desc{
+        background: url('{!URLFOR($Resource.jquery,'img/sort_desc.png')}') no-repeat scroll right center transparent;
+    }
+    
+    .sorting_asc{
+        background: url('{!URLFOR($Resource.jquery,'img/sort_asc.png')}') no-repeat scroll right center transparent;
+    }    
+    
+    .sorting{
+        background: url('{!URLFOR($Resource.jquery,'img/sort_both.png')}') no-repeat scroll right center transparent;
+    }        
+    
+    #tectable th{
+        padding-right: 20px;
+        cursor: pointer;
+    }
+    
+    #checkth{
+        cursor: none;
+        background: none;
+    }
+    
+    #tectable_info{
+        float:left;
+    }
+    #tectable_paginate{
+        padding-left: 300px;
+    }
+
+</style>
+
+<apex:form >
+        <apex:sectionHeader title="Technology Targeting Edit" />
+        <apex:pageBlock mode="edit" >
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton value="save" action="{!customSave}"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection columns="1">
+                <apex:inputField rendered="false" value="{!TechnologyTargeting__c.valueIds__c}"/>
+                <apex:inputField style="display:none;" value="{!TechnologyTargeting__c.Product__c}"/>
+                <apex:inputField style="display:none;"   value="{!TechnologyTargeting__c.LineItem__c}"/>
+                <apex:pageBlockSectionItem rendered="{!TechnologyTargeting__c.id == ''}">
+                    <apex:outputLabel value="{!$ObjectType.TechnologyTargeting__c.fields.Type__c.label}" />
+                    <apex:outputText id="TypePanel">
+                        <div class="requiredInput">
+                            <div class="requiredBlock" />
+                            <apex:selectList id="type" required="true" value="{!TechnologyTargeting__c.Type__c}" size="1" onchange="if(this.value != ''){$('#loading').show();runQueryJs()}else{resetTypeJs()}" >
+                                <apex:selectOptions value="{!technologyTypeItems}"  />
+                            </apex:selectList>
+                            <apex:actionFunction name="resetTypeJs" action="{!resetType}" immediate="true" rerender="selectCheckboxes" />
+                            <apex:actionFunction action="{!runQuery}" name="runQueryJs" rerender="selectCheckboxes" />
+                        </div>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:outputField value="{!TechnologyTargeting__c.Type__c}" rendered="{!TechnologyTargeting__c.id != ''}"/>
+                <apex:inputfield value="{!TechnologyTargeting__c.isTargeted__c}" />
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+        <apex:pageBlock id="selectCheckboxes">
+            <img id="loading" src="/img/loading32.gif" style="width:20px;display:none;"/>
+            <apex:outputText rendered="{!queryUtil.ii != ''}">
+                <table cellpadding="10" id="tectable">
+                    <thead>
+                        <tr>
+                            <th id="checkth"></th>
+                            <apex:repeat value="{!queryUtil.columnTypes}" var="ct">
+                                <th>{!ct}</th>
+                            </apex:repeat>        
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <apex:repeat value="{!queryUtil.ii}" var="i">
+                            <tr>
+                                <td>
+                                    <apex:inputCheckbox value="{!selectedValues[i].checked}"/>
+                                </td>
+                                <apex:repeat value="{!queryUtil.columnTypes}" var="ct">
+                                    <td>{!queryUtil.table[ct][i].value}</td>
+                                </apex:repeat>                            
+                            </tr>                    
+                        </apex:repeat>
+                    </tbody>
+                </table>
+                <script>
+                    $(document).ready(function() {
+                        if('{!queryUtil.ii.size}' != ''){
+                            $('#tectable').dataTable( {
+                            "aoColumns": [
+                                { "asSorting": [ ] }
+                                <apex:repeat value="{!queryUtil.columnTypes}" var="ct">
+                                    ,null
+                                </apex:repeat> 
+                                ]
+                            });
+                        }
+                    });
+                </script>
+            </apex:outputText>   
+            <apex:outputText rendered="{!queryUtil.ii == '' || queryUtil.ii.size == 0}">
+                <script>
+                    $(document).ready(function() {
+                        $('#tectable_wrapper').hide();
+                    })
+                </script>
+            </apex:outputText>
+        </apex:pageBlock>        
+    </apex:form>    
+
+</apex:page>

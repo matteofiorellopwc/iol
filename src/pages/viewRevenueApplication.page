@@ -1,0 +1,3 @@
+<apex:page standardController="Revenue_application__c" extensions="ExtensionViewRevenueApplication" action="{!viewRevenueApplication}">
+    <apex:pageMessages ></apex:pageMessages>
+</apex:page>

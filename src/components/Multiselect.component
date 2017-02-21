@@ -1,0 +1,50 @@
+<apex:component controller="MultiSelectController">
+	<apex:attribute name="value" description="value of the multiselect" type="StringCarrier" required="true" assignTo="{!picklistValue}" />
+	<apex:attribute name="options" description="options the multiselect" type="SelectOption[]" required="true" assignTo="{!originalValues}" />
+	<apex:attribute name="readonly" description="determine if the component is readonly" type="Boolean" default="false" />
+	
+	<apex:outputPanel rendered="{!readonly}">
+		<apex:outputText value="{!selectedLabels}"/>
+	</apex:outputPanel>
+
+	<apex:outputPanel rendered="{!NOT(readonly)}">
+
+        <apex:panelGrid columns="3" id="abcd">
+
+            <apex:selectList id="sel1" value="{!leftselected}" multiselect="true" size="5">
+
+                <apex:selectOptions value="{!unselectedvalues}" />
+
+            </apex:selectList>
+
+                <apex:panelGroup >
+
+                    <br/>
+
+                    <apex:image value="/s.gif" styleClass="picklistArrowRight">
+
+                        <apex:actionSupport event="onclick" action="{!selectclick}" reRender="abcd"/>
+
+                    </apex:image>
+
+                    <br/><br/>
+
+                    <apex:image value="/s.gif" styleClass="picklistArrowLeft">
+
+                        <apex:actionSupport event="onclick" action="{!unselectclick}" reRender="abcd"/>
+
+                    </apex:image>
+
+                </apex:panelGroup>
+
+            <apex:selectList id="sel2" value="{!rightselected}" multiselect="true" size="5">
+
+                <apex:selectOptions value="{!SelectedValues}" />
+
+            </apex:selectList>
+
+        </apex:panelGrid>
+
+	</apex:outputPanel>
+
+</apex:component>

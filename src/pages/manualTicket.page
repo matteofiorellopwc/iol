@@ -1,0 +1,18 @@
+<apex:page standardController="Ticket_Fatturazione__c" extensions="ControllerManualBill">
+<apex:form >
+<apex:pagemessages />
+<apex:pageBlock >
+
+    <apex:pageBlockSection title="Periodo di riferimento" rendered="{!AND(opty.Check_amministrativo__c,opty.Escludi_da_fatt_auto__c)}">
+        <apex:inputField value="{!Ticket_Fatturazione__c.Mese_riferimento__c}" required="true"/>
+        <apex:inputField value="{!Ticket_Fatturazione__c.Anno_riferimento__c}" required="true"/>
+    </apex:pageBlockSection>
+    
+    <apex:pageBlockButtons >
+        <apex:commandButton value="Crea Ticket" action="{!saveTkt}" rendered="{!canSave}"/>
+        <apex:commandButton value="Indietro" action="{!back}"/>
+    </apex:pageBlockButtons>
+    
+</apex:pageBlock>
+</apex:form>
+</apex:page>

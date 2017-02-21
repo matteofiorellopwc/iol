@@ -1,0 +1,257 @@
+<apex:page controller="editCookieSearchTermController" tabStyle="Opportunity" showHeader="false">
+    <apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+    
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+
+    <style>
+        body {
+        	background: #F1F1F1;
+        	padding: 10px;
+        }
+        
+        .sorting_desc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_desc.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .sorting_asc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_asc.png')}') no-repeat scroll right center transparent;
+        }    
+        
+        .sorting {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_both.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .img-loading {
+            width: 12px;
+            vertical-aling: middle;
+        }
+        
+        .codice{
+            width: 200px;
+            white-space: nowrap;
+            overflow:hidden;
+        }
+        
+        /* RLC StyleSheet */
+        .block {
+        	float:left;
+        	width: 50%;
+        }
+        
+        .box-header {
+            margin: 0 auto;
+            width: 95%;
+            height: 30px;
+            line-height: 30px;
+            font-weight: bold;
+            font-size: 1.2em;
+            padding-bottom: 10px;
+        }
+        
+        .box-header-title {
+            margin-right:20%;
+        }
+        
+        .box-body {
+            margin: 0 auto;
+            width: 95%;
+        	background: #FFFFFF;
+        	border: 1px solid #E0E3E5;
+        }
+        
+        .cs-section {
+        	margin: 15px;	
+        }
+        
+        .cs-section-title {
+        	font-weight: bold;
+        	padding: 6px 2px;
+        }
+        
+        
+        .cs-section-content {
+        	border-bottom: 1px solid #E0E3E5;
+        }
+        
+        cs-section-content a {
+        	color: #015BA7;
+        }
+        
+        .separator {
+            color: #015BA7;
+        }
+        
+        /* Data Table */
+        .ui-widget-header {
+            background: #DDB929;
+            overflow: auto;
+        	color: white;
+        }
+        
+         .ui-widget-header a {
+        	color: #FFFFFF;
+        }
+        
+        .ui-widget-header a:hover {
+        	color: #FFFFFF;
+        }
+        
+        #cstable {
+        	width: 100%;
+        }
+        
+        #cstable th {
+            background: #F2F3F3;
+            padding: 3px 5px;
+        }
+        
+        .dataTables_info {
+            float: left;
+            width: 50%;
+        }
+        
+        .dataTables_paginate {
+            float: right;
+            text-align: right;
+            width: auto;
+        }
+        
+        .dataTables_length {
+            float: left;
+            width: 40%; 
+        }
+        
+        .dataTables_filter {
+            float: right;
+            text-align: right;
+            width: 50%;
+        }
+        
+        .ui-toolbar {
+            padding: 5px;
+        }
+        
+        .col-check {
+            width: 12px;
+        }
+        
+        .action-link {
+            color: #015BA7 !important;
+            font-weight: normal;
+            text-decoration: none;
+        }
+    
+    </style>    
+    
+    <apex:form >
+    
+        <apex:pageMessages escape="false"></apex:pageMessages>
+    
+        <apex:actionFunction name="editJs" action="{!editCookieSearch}" reRender="tableCS,editPageBlockCs">
+            <apex:param name="editCS" value="" assignTo="{!editCS}" />
+        </apex:actionFunction>
+        <apex:actionFunction name="deleteJs" action="{!deleteCookieSearch}" reRender="tableCS,editPageBlockCs">
+            <apex:param name="editCS" value="" assignTo="{!editCS}" />
+        </apex:actionFunction>        
+        <apex:actionFunction name="resetJs" action="{!resetCookieSearch}" reRender="tableCS,editPageBlockCs">
+            <apex:param name="editCS" value="" assignTo="{!editCS}" />
+        </apex:actionFunction>
+    	
+        <div style="height:10px;"/>
+        <apex:outputPanel styleClass="block" layout="block" id="tableCS">
+            <apex:outputPanel layout="block">
+                <div class="box-header">
+                    <span class="box-header-title">Cookie e Termini di Ricerca</span>
+                </div>
+                <div class="box-body">
+                	<apex:repeat value="{!csMap}" var="key">
+                        <div class="cs-section">
+                            <div class="cs-section-title">
+                            	{!SUBSTITUTE(key,'_',' ')}    
+                            </div>
+                            <div class="cs-section-content">
+                                <table>
+                                	<tr>
+                                        <td style="width: 200px;">
+                                            <apex:outputText rendered="{!editable}" >
+                                                <a class="action-link" style="cursor: pointer;" onclick="editJs('{!key}');">Aggiungi</a>             
+                                                <apex:outputText rendered="{!NOT(ISBLANK(csTKeySet)) && CONTAINS(csTKeySet,key)}">
+                                                    <span class="separator">|&nbsp;</span>
+                                                    <a class="action-link" style="cursor: pointer;" onclick="deleteJs('{!key}');">Elimina</a>
+                                                    <span class="separator">|&nbsp;</span>
+                                                    <a class="action-link" style="cursor: pointer;" onclick="if(confirm('Eliminare tutto?')) resetJs('{!key}');">Reset</a>
+                                                </apex:outputText>
+                                            </apex:outputText>
+                                        </td>
+                                        <td>
+                                            <apex:outputText rendered="{!NOT(ISBLANK(csTKeySet)) && CONTAINS(csTKeySet,key)}">
+                                                <apex:outputText value="{!csT[key].names__c}" escape="false" />
+                                            </apex:outputText>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>   
+                	</apex:repeat>
+                </div>
+            </apex:outputPanel>
+        </apex:outputPanel>
+        
+        <apex:outputPanel styleClass="block" layout="block" id="editPageBlockCs">
+            <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(editCS))}" >
+                <div class="box-header">
+                    <span class="box-header-title">{!SUBSTITUTE(editCS,'_',' ')}</span>
+                    <apex:commandButton value="Salva" action="{!customSave}" />
+                </div>
+                <div class="box-body">
+                    <apex:outputPanel layout="block" style="font-size:0.9; padding: 2px;" rendered="{!Operation = 'delete'}">
+                        <apex:image value="/img/msg_icons/info16.png" style="vertical-align: middle; margin-right: 3px;"/>
+                    	<apex:outputText value="Deseleziona per eliminare"/>
+                    </apex:outputPanel>
+                    <table id="cstable">
+                        <thead>
+                            <tr>
+                                <th class="col-check"></th>
+                                <th id="name">Nome</th>
+                                <th id="cod" class="codice" >Cod</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <apex:repeat value="{!csMap[editCS]}" var="cs">
+                                <apex:outputText rendered="{!OR(Operation = 'edit' && NOT(cs.selected), Operation = 'delete' && cs.selected )}">
+                                    <tr>
+                                        <td><apex:inputCheckbox value="{!cs.selected}"/> </td>
+                                        <td>{!cs.cs.name}</td>
+                                        <td class="codice" >
+                                            {!LEFT(cs.cs.value__c,45)}
+                                            <apex:outputText rendered="{!LEN(cs.cs.value__c)>45}" escape="false">
+                                                <span onclick="alert('{!cs.cs.value__c}');" >...</span>
+                                            </apex:outputText>
+                                        </td>
+                                    </tr>
+                                </apex:outputText>
+                            </apex:repeat>
+                        </tbody>
+                    </table>
+               
+                    <script>
+                        <apex:outputText rendered="{!operation = 'edit'}">
+                            $(document).ready(function() {
+                                    $('#cstable').dataTable(
+                                        {
+                                            "aoColumns": [ { "asSorting": [ ] },null,null ],
+                            				"sDom": '<"H"<"toolbar">lfr>t<"F"ip>',
+                                            "oLanguage": {
+                                                "sUrl": "{!URLFOR($Resource.jquery,'dataTableIta.txt')}"
+                                            }
+                                        }
+                                    );
+                            });
+                        </apex:outputText>
+                    </script>
+                </div>
+            </apex:outputPanel>  
+        </apex:outputPanel>
+    </apex:form>        
+</apex:page>

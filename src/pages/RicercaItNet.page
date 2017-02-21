@@ -1,0 +1,249 @@
+<apex:page controller="ControllerRicercaItNet" >
+
+    <style>
+    .searchDiv{
+        height: 118px;
+        float:left;
+        width: 360px;
+    }
+        
+    .infoDiv {
+        margin-left: 360px;
+        margin-bottom: 10px;
+    }
+        
+    .info {
+        background-color: #FFFFD0;
+        margin: 0 20px;
+        padding: 0 10px;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+    }
+        
+    .info ul, .info li{
+        margin-left: 0px;
+    }
+        
+    .info-table{
+        width: 100%;
+    }
+    
+    .searchInput {
+        border: 1px solid #B6B6B6;
+        font-size: 100%;
+        height: 16px;
+        padding: 3px 5px;
+        width: 280px;
+        margin-right: 5px;
+        margin-top: 46px;
+    }
+    
+    .searchButton {
+        height: 24px;
+        margin: 0;
+        max-width: 400px;    
+    }
+        
+    .loadingDiv {
+        text-align: center;
+    }
+        
+    .loadingDiv img{
+        margin: 10px;
+    }
+        
+    .accountImg {
+        background-image: url("/img/sprites/master.png");
+        background-position: 0 -362px;
+        height: 24px;
+        width: 24px;
+    }
+        
+    .contrattoImg {
+        background-image: url("/img/icon/ticket24.png");
+        background-position: 0 0;
+        height: 24px;
+        width: 24px;
+    }
+        
+    .facetHeaderImg {
+        width: 25px;
+        padding: 0px 0px 0px 5px !important;
+        vertical-aling: middle;
+    }
+    
+    .facetHeaderTitle {
+        font-size: 1.2em;
+        font-weight: bold;
+        padding: 0px;
+        padding: 0px 0px 0px 5px !important;
+
+    }
+        
+    .pbt-wrapper {
+        margin: 5px;
+    }
+        
+    .noResult{
+        background-color: #FFFFCC;
+        border-style: solid;
+        border-width: 1px;
+        border-color: #FF9900;
+        color: #000000;
+        margin: 4px 20px;
+        padding: 6px 8px 6px 6px;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+    }
+        
+    .noResultIcon {
+        background-image: url("/img/msg_icons/warning16.png");
+        background-position: 0 0;
+        height: 16px;
+        width: 16px;
+        vertical-align: middle;
+    }
+    </style>
+    <script>
+        function showLoading(id){
+            document.getElementById(id).style.visibility = 'visible';
+        }
+        
+        function hideLoading(id){
+            document.getElementById(id).style.visibility = 'hidden';    
+        }
+    </script>
+    
+    <apex:form >
+        <div class="searchDiv">
+            <apex:inputText value="{!searchString}" styleClass="searchInput"/>
+            <apex:commandButton value="Cerca" action="{!find}" styleClass="searchButton"/>
+            <!-- rerender="results" onclick="showLoading('loading')" oncomplete="hideLoading('loading')" -->
+            <div class="loadingDiv">
+                <img style="visibility:hidden; width:20px" id="loading" src="/img/loading32.gif" />
+            </div>
+        </div>
+        <div class="infoDiv">
+            <div class="info">
+                <table class="info-table">
+                    <tr>
+                        <td colspan="3">
+                            <p>La ricerca può essere effettuata sui campi dei seguenti oggetti:</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width: 260px;">
+                            <h5>Anagrafica</h5>
+                            <ul>
+                                <li>Account Accesso Portale</li>
+                                <li>Chiave per legame accesso esterni</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <h5>Contratto</h5>
+                            <ul>
+                                <li>Id</li>
+                            </ul>
+                        </td>
+                        <td>
+                            <h5>Sotto Contratto</h5>
+                            <ul>
+                                <li>Id</li>
+                            </ul>
+                        </td>                            
+                    </tr>
+                </table>    
+            </div>
+        </div>
+        
+        <div style="clear:both;"></div>
+    </apex:form>
+    
+    <apex:outputPanel id="results">
+        
+        
+        <!-- ANAGRAFICHE -->
+        <apex:pageBlock tabStyle="Account" mode="edit" rendered="{!accountResults.size > 0}">
+            <apex:facet name="header">
+                <apex:panelGrid columns="2" columnClasses="facetHeaderImg, facetHeaderTitle">
+                    <apex:image url="/s.gif" styleClass="accountImg"/>
+                    <apex:outputText value="Anagrafiche({!accountResults.size})"/>
+                </apex:panelGrid>               
+            </apex:facet>
+            <div class="pbt-wrapper">
+                <apex:pageBlockTable value="{!accountResults}" var="ar">
+                    <apex:column headerValue="Nome">
+                        <apex:outputLink value="/{!ar.id}">{!ar.Name}</apex:outputLink> 
+                    </apex:column>
+                    <apex:column value="{!ar.Account_Accesso__c}"/>
+                    <apex:column value="{!ar.Chiave_per_legame_accesso_esterni__c}"/>
+                    <apex:column value="{!ar.Nome_persona_fisica__c}"/>
+                    <apex:column value="{!ar.cognome_persona_fisica__c}"/>
+                    <apex:column value="{!ar.Email_principale__c}"/>      
+                </apex:pageBlockTable>
+            </div>
+        </apex:pageBlock>
+        
+        <!-- CONTRATTI -->
+        <apex:pageBlock tabStyle="Contratto__c" mode="edit" rendered="{!contrattoResults.size > 0}">
+            <apex:facet name="header">
+                <apex:panelGrid columns="2" columnClasses="facetHeaderImg, facetHeaderTitle">
+                    <apex:image url="/s.gif" styleClass="contrattoImg"/>
+                    <apex:outputText value="Contratto({!contrattoResults.size})"/>
+                </apex:panelGrid>               
+            </apex:facet>
+            <div class="pbt-wrapper">
+                <apex:pageBlockTable value="{!contrattoResults}" var="cr">
+                    <apex:column value="{!cr.ID}"/>
+                    <apex:column headerValue="Nome">
+                        <apex:outputLink value="/{!cr.id}">{!cr.Name}</apex:outputLink> 
+                    </apex:column>
+                    <apex:column value="{!cr.Cliente__c}"/>
+                    <apex:column value="{!cr.Descrizione__c}"/>
+                    <apex:column value="{!cr.SottocontrattiConProdottiAperti__c}"/>
+                    <apex:column value="{!cr.Data_Chiusura__c}"/>
+                    <!--
+                    <apex:column value="{!cr.ID_anagrafica_Fatturazione__c}"/>
+                    <apex:column value="{!cr.Propaga_data_chiusura__c}"/>
+                    <apex:column value="{!cr.Propaga_sospensione__c}"/>
+                    -->
+                </apex:pageBlockTable>
+            </div>
+        </apex:pageBlock>
+        
+        <!-- SOTTO CONTRATTI -->
+        <apex:pageBlock tabStyle="SottoContratto__c" mode="edit" rendered="{!sottoContrattoResults.size > 0}">
+            <apex:facet name="header">
+                <apex:panelGrid columns="2" columnClasses="facetHeaderImg, facetHeaderTitle">
+                    <apex:image url="/s.gif" styleClass="contrattoImg"/>
+                    <apex:outputText value="Sotto Contratti({!sottoContrattoResults.size})"/>
+                </apex:panelGrid>               
+            </apex:facet>
+            <div class="pbt-wrapper">
+                <apex:pageBlockTable value="{!sottoContrattoResults}" var="scr">
+                    <apex:column value="{!scr.Id}"/>
+                    <apex:column headerValue="Nome">
+                        <apex:outputLink value="/{!scr.id}">{!scr.Name}</apex:outputLink> 
+                    </apex:column>
+                    <apex:column value="{!scr.Contratto__c}"/>
+                    <apex:column value="{!scr.Descrizione__c}"/>
+                    <apex:column value="{!scr.ProdottiSottoContrattoAperti__c}"/>
+                    <!--
+                        <apex:column value="{!scr.Propaga_data_chiusura__c}"/>
+                        <apex:column value="{!scr.Propaga_sospensione__c}"/>
+                    -->
+                </apex:pageBlockTable>
+            </div>
+        </apex:pageBlock>
+        
+        <apex:outputText rendered="{!showNoresult}">
+            <div class="noResult">
+                <img class="noResultIcon" title="Warning" alt="Warning" src="/s.gif"/>
+                Nessun risultato
+            </div>
+        </apex:outputText>       
+    </apex:outputPanel>     
+
+</apex:page>

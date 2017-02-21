@@ -1,0 +1,544 @@
+<apex:page controller="PagesSectionsController" showHeader="false">
+    <apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+    
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+
+    <style>
+        body {
+        	background: #F1F1F1;
+        	padding: 10px;
+        }
+        
+        .page-block-content {
+            overflow: auto;
+        }
+                
+        .box-header {
+            margin: 0 auto;
+            width: 95%;
+            height: 30px;
+            line-height: 30px;
+            font-weight: bold;
+            font-size: 1.2em;
+            padding-bottom: 10px;
+        }
+        
+        .box-header-title {
+            margin-right:20%;
+        }
+        
+        .box-body {
+            margin: 0 auto;
+            width: 95%;
+        }
+        
+        .box-left {
+            float: left;
+            width: 50%;
+        }
+        
+        .box-left .box-body{
+            border: 1px solid #E0E3E5;
+            background: #FFFFFF;
+        }
+        
+        .box-right {
+            margin-left: 50%;
+            width: 48%;
+        }
+        
+        .box-right .box-body {
+            background: #FFFFFF;
+            border: 1px solid #E0E3E5;
+        }
+        
+        .action-link {
+            color: #015BA7 !important;
+            font-weight: normal;
+            text-decoration: none;
+        }
+        
+        .col-action {
+            padding: 6px 2px;
+        }
+        
+        .col-name {
+            font-weight: bold;
+            padding: 6px 2px;
+        }
+        
+        .col-excluded-pages {
+            vertical-align: middle !important;
+            text-align: center;
+            font-size: 0.8em;
+            color: #434343 !important;
+        }
+        
+        /* Data Table */
+        .sorting_desc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_desc.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .sorting_asc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_asc.png')}') no-repeat scroll right center transparent;
+        }    
+        
+        .sorting {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_both.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .dataTables_length {
+            float: left;
+            width: 40%; 
+        }
+        
+        .dataTables_filter {
+            float: right;
+            text-align: right;
+            width: 50%;
+        }
+        
+        .ui-toolbar {
+            padding: 5px;
+        }
+        
+        .ui-widget-header {
+            background: #DDB929;
+            overflow: auto;
+        	color: white;
+        }
+        
+         .ui-widget-header a{
+        	color: white;
+        }
+        
+        .ui-widget-header a:hover{
+        	color: white;
+        }
+        
+        .dataTables_info {
+            float: left;
+            width: 50%;
+        }
+        
+        .dataTables_paginate {
+            float: right;
+            text-align: right;
+            width: auto;
+        }
+        
+        .ui-state-default {
+            background: #F2F3F3;
+        }
+        
+        #pages-table_previous, #paginate_enabled_next,
+        #pagesEx-table_previous, #paginateEx_enabled_next,
+        #sections-table_previous, #sections-table_next,
+        #sectionPages-table_previous, #sectionPages-table_next {
+            margin-right: 6px;
+        }
+        
+        #pages-table, #pagesEx-table, #sections-table, #sectionPages-table {
+            width: 100%;
+        }
+        
+        #pages-table th, #pagesEx-table th, #sections-table th {
+            background: #F2F3F3;
+            padding: 3px 5px;
+        }
+        
+        #sectionPages-table th {
+            background: #F2F3F3;
+            padding: 3px 5px;
+        }
+        
+        #sectionPages-table_wrapper .ui-widget-header {
+            background: #D36D6B;
+        }
+        
+        .col-check {
+            width: 12px;
+        }
+        
+        .no-items {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .included-pages-table {
+            margin: 10px auto;
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 95%;
+        }
+        
+        .included-pages-table td{
+            border-bottom: 1px solid #E0E3E5;
+        }
+        
+        .included-sections-table {
+            margin: 10px auto;
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 95%;
+        }
+        
+        .included-sections-table .row{
+            border-bottom: 1px solid #E0E3E5;
+        }
+        
+        .included-pageSections-table {
+            margin: 0px auto;
+            cellspacing: 0px;
+            width: 90%;
+        }
+        
+        .img-loading {
+            width: 12px;
+            vertical-aling: middle;
+        }
+        
+        .separator {
+            color: #015BA7;
+        }
+        
+    </style>
+    
+    <script>
+        var j$ = jQuery.noConflict();
+    
+        j$(document).ready(function() {
+            initPagesTable();
+            initPagesExTable();
+            initSectionsTable();
+        });
+        
+        function initPagesTable() {
+            j$('#pages-table').dataTable({
+                "aoColumns": [
+                    { "bSortable": false },
+                    { "bSortable": true }
+                ],
+                "sDom": '<"H"<"toolbar">lfr>t<"F"ip>',
+                "oLanguage": {
+                    "sUrl": "{!URLFOR($Resource.jquery,'dataTableIta.txt')}"
+                }
+            });     
+        }
+        
+        function initPagesExTable() {
+            j$('#pagesEx-table').dataTable({
+                "aoColumns": [
+                    { "bSortable": false },
+                    { "bSortable": true }
+                ],
+                "sDom": '<"H"<"toolbar">lfr>t<"F"ip>',
+                "oLanguage": {
+                    "sUrl": "{!URLFOR($Resource.jquery,'dataTableIta.txt')}"
+                }
+            });     
+        }
+        
+        function initSectionsTable() {
+            j$('#sections-table').dataTable({
+                "aoColumns": [
+                    { "bSortable": false },
+                    { "bSortable": true }
+                ],
+                "sDom": '<"H"<"toolbar">lfr>t<"F"ip>',
+                "oLanguage": {
+                    "sUrl": "{!URLFOR($Resource.jquery,'dataTableIta.txt')}"
+                }
+            });     
+        }
+        
+        function initSectionPagesTable() {
+            j$('#sectionPages-table').dataTable({
+                "aoColumns": [
+                    { "bSortable": false },
+                    { "bSortable": true }
+                ],
+                "sDom": '<"H"<"toolbar">lfr>t<"F"ip>',
+                "oLanguage": {
+                    "sUrl": "{!URLFOR($Resource.jquery,'dataTableIta.txt')}"
+                }
+            });     
+        }
+    </script>
+    
+    <apex:pageMessages />
+    <apex:form >
+		<div style="height:10px;"/>
+        <!-- PAGINE INCLUSE -->
+        <apex:outputPanel layout="block" rendered="{!NOT(error)}">
+            <div class="page-block-content">    
+                <div class="box box-left">
+                    <div class="box-header">
+                        Pagine incluse 
+                        <apex:actionStatus id="removePagesStatus">
+                           <apex:facet name="start">
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                           </apex:facet>
+                        </apex:actionStatus>
+                    </div>
+                    <apex:outputPanel id="included-pages" layout="block" styleClass="box-body">
+                        <apex:outputPanel layout="block" styleClass="no-items" rendered="{!itL.size == 0}">
+                            Non sono presenti pagine
+                        </apex:outputPanel>
+                        <apex:dataTable styleClass="included-pages-table" value="{!itL}" var="it" columnClasses="col-action, col-name" rendered="{!itL.size != 0}">
+                            <apex:column >
+                                  <apex:commandLink value="Elimina" action="{!removePages}" onclick="if(!confirm('Sei sicuro?')){return};" status="removePagesStatus" styleClass="action-link" rerender="included-pages, excluded-pages" rendered="{!AND(editable, $CurrentPage.parameters.excludeMode = 'true')}" oncomplete="initPagesTable();">
+                                    <apex:param name="selectedInventoryTarget" value="{!it.Id}" assignTo="{!selectedInventoryTarget}"/>
+                                </apex:commandLink>
+                            </apex:column>  
+                            <apex:column value="{!it.Ad_Unit__r.Name}"/> 
+                        </apex:dataTable>
+                    </apex:outputPanel>
+                </div>
+                        
+                <apex:outputPanel layout="block" styleClass="box box-right" rendered="{!AND(editable, $CurrentPage.parameters.includeMode = 'true')}">
+                    <div class="box-header">
+                        <span class="box-header-title">Seleziona pagine</span>
+                        <apex:commandButton value="Includi" action="{!includePages}" status="includePagesStatus" rerender="included-pages, excluded-pages" oncomplete="initPagesTable();"/>
+                        <apex:actionStatus id="includePagesStatus">
+                           <apex:facet name="start">
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                           </apex:facet>
+                        </apex:actionStatus>                                            
+                    </div>
+                    <apex:outputPanel id="excluded-pages" layout="block" styleClass="box-body">
+                        <table id="pages-table">
+                               <thead>
+                                   <tr>
+                                       <th class="col-check"></th>
+                                       <th>Name</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+								   <apex:repeat value="{!adUnitL1}" var="au">
+                                       <tr>
+                                           <td><apex:inputCheckbox value="{!au.checked}"/></td>
+                                           <td>{!au.adUnit.Name}</td>
+                                       </tr>
+                                   </apex:repeat>
+								   <apex:repeat value="{!adUnitL2}" var="au">
+                                       <tr>
+                                           <td><apex:inputCheckbox value="{!au.checked}"/></td>
+                                           <td>{!au.adUnit.Name}</td>
+                                       </tr>
+                                   </apex:repeat>
+                               </tbody>
+                           </table>
+                    </apex:outputPanel>
+                </apex:outputPanel>
+            </div> <!-- Fine page-block-content -->
+        </apex:outputPanel> <!--  FINE PAGINE INCLUSE -->
+        
+		<div style="border-top: 1px solid #DBDBDB; border-bottom: 1px solid #FFFFFF; margin: 40px 50px 10px 20px; "/>
+		
+		<!-- PAGINE ESCLUSE -->
+        <apex:outputPanel layout="block" rendered="{!NOT(error)}">
+            <div class="page-block-content">    
+                <div class="box box-left">
+                    <div class="box-header">
+                        Pagine escluse
+                        <apex:actionStatus id="removePagesExStatus">
+                           <apex:facet name="start">
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                           </apex:facet>
+                        </apex:actionStatus>
+                    </div>
+                    <apex:outputPanel id="included-pagesEx" layout="block" styleClass="box-body">
+                        <apex:outputPanel layout="block" styleClass="no-items" rendered="{!itExL.size == 0}">
+                            Non sono presenti pagine
+                        </apex:outputPanel>
+                        <apex:dataTable styleClass="included-pages-table" value="{!itExL}" var="it" columnClasses="col-action, col-name" rendered="{!itExL.size != 0}">
+                            <apex:column >
+                                  <apex:commandLink value="Elimina" action="{!removePagesEx}" onclick="if(!confirm('Sei sicuro?')){return};" status="removePagesExStatus" styleClass="action-link" rerender="included-pagesEx, excluded-pagesEx" rendered="{!AND(editable, $CurrentPage.parameters.includeMode = 'true')}" oncomplete="initPagesExTable();">
+                                    <apex:param name="selectedInventoryTargetEx" value="{!it.Id}" assignTo="{!selectedInventoryTargetEx}"/>
+                                </apex:commandLink>
+                            </apex:column>  
+                            <apex:column value="{!it.Ad_Unit__r.Name}"/> 
+                        </apex:dataTable>
+                    </apex:outputPanel>
+                </div>
+                        
+                <apex:outputPanel layout="block" styleClass="box box-right" rendered="{!AND(editable, $CurrentPage.parameters.excludeMode = 'true')}">
+                    <div class="box-header">
+                        <span class="box-header-title">Seleziona pagine</span>
+                        <apex:commandButton value="Escludi" action="{!excludePages}" status="excludePagesStatus" rerender="included-pagesEx, excluded-pagesEx" oncomplete="initPagesExTable();"/>
+                        <apex:actionStatus id="excludePagesStatus">
+                           <apex:facet name="start">
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                           </apex:facet>
+                        </apex:actionStatus>                                            
+                    </div>
+                    <apex:outputPanel id="excluded-pagesEx" layout="block" styleClass="box-body">
+                        <table id="pagesEx-table">
+                               <thead>
+                                   <tr>
+                                       <th class="col-check"></th>
+                                       <th>Name</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+								   <apex:repeat value="{!adUnitExL1}" var="auEx">
+                                       <tr>
+                                           <td><apex:inputCheckbox value="{!auEx.checked}"/></td>
+                                           <td>{!auEx.adUnit.Name}</td>
+                                       </tr>
+                                   </apex:repeat>
+								  <apex:repeat value="{!adUnitExL2}" var="auEx">
+                                       <tr>
+                                           <td><apex:inputCheckbox value="{!auEx.checked}"/></td>
+                                           <td>{!auEx.adUnit.Name}</td>
+                                       </tr>
+                                   </apex:repeat>
+                               </tbody>
+                           </table>
+                    </apex:outputPanel>
+                </apex:outputPanel>
+            </div> <!-- Fine page-block-content -->
+        </apex:outputPanel> <!--  FINE PAGINE ESCLUSE -->
+        
+		<div style="border-top: 1px solid #DBDBDB; border-bottom: 1px solid #FFFFFF; margin: 40px 50px 10px 20px; "/>
+
+        <!-- SEZIONI-->
+        <div style="height: 15px;"/>
+        <apex:outputPanel layout="block" rendered="{!NOT(error)}" styleClass="block">
+            <div class="page-block-content">
+                <div class="box box-left">
+                    <div class="box-header">
+                        Sezioni
+                        <apex:actionStatus id="excludeSectionsStatus">
+                            <apex:facet name="start">
+                                <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                            </apex:facet>
+                        </apex:actionStatus>
+                        <apex:actionStatus id="showSectionPagesStatus">
+                            <apex:facet name="start">
+                                <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                            </apex:facet>
+                        </apex:actionStatus>
+                    </div>
+                    <apex:outputPanel id="included-sections" layout="block" styleClass="box-body">
+                        <apex:outputPanel layout="block" styleClass="no-items" rendered="{!sotWL.size == 0}">
+                            Non sono presenti sezioni
+                        </apex:outputPanel>
+    
+                        <apex:outputText rendered="{!sotWL.size != 0}">
+                            <table class="included-sections-table">
+                                <apex:repeat value="{!sotWL}" var="sot">
+                                    <tr>
+                                        <td style="width: 160px" class="col-name {!IF(sot.exludedPages.size == 0, 'row', '')}">
+                                            <apex:outputText rendered="{!NOT(showPagesInSection)}">
+                                                <apex:commandLink value="Escludi pagine" action="{!showPagesInSection}" status="showSectionPagesStatus" styleClass="action-link" rerender="sections-right-panel, included-sections" rendered="{!AND(editable, $CurrentPage.parameters.excludeMode = 'true')}" oncomplete="initSectionPagesTable()">
+                                                    <apex:param name="selectedSectionOasTargeted" value="{!sot.sectionOasTargeted.Id}" assignTo="{!selectedSectionOasTargeted}"/>
+                                                    <apex:param name="selectedSectionOas" value="{!sot.sectionOasTargeted.SectionOas__c}" assignTo="{!selectedSectionOas}"/>
+                                                </apex:commandLink>
+                                                <apex:outputPanel rendered="{!AND(editable, $CurrentPage.parameters.excludeMode = 'true')}" styleClass="separator">|&nbsp;</apex:outputPanel>
+                                                <apex:commandLink value="Elimina" onclick="if(!confirm('Sei sicuro?')){return};" action="{!removeSections}" status="excludeSectionsStatus" styleClass="action-link" rerender="included-sections, excluded-sections" rendered="{!AND(editable, $CurrentPage.parameters.excludeMode = 'true')}" oncomplete="initSectionsTable()">
+                                                    <apex:param name="selectedSectionOasTargeted" value="{!sot.sectionOasTargeted.Id}" assignTo="{!selectedSectionOasTargeted}"/>
+                                                </apex:commandLink>
+                                            </apex:outputText>
+                                        </td>
+                                        <td class="col-name {!IF(sot.exludedPages.size == 0, 'row', '')}">
+                                            <apex:outputField value="{!sot.sectionOasTargeted.SectionOAS__r.Name}"/>
+                                        </td>
+                                    </tr>
+                                    <!-- Pagine escluse -->
+                                    <apex:outputText rendered="{!sot.exludedPages.size != 0}">
+                                        <tr>
+                                            <td class="col-excluded-pages row">
+                                                Pagine escluse
+                                            </td>
+                                            <td  class="row">
+                                                <table class="included-pageSections-table">
+                                                    <apex:repeat value="{!sot.exludedPages}" var="ep">
+                                                        <tr>                                                           
+                                                            <td style="padding-left: 20px; width:65px;">
+                                                                <apex:commandLink value="Reincludi" action="{!removeExcludePagesInSection}" status="excludeSectionsStatus" styleClass="action-link" rerender="included-sections" rendered="{!AND(NOT(showPagesInSection), editable, $CurrentPage.parameters.excludeMode = 'true')}">
+                                                                    <apex:param name="selectedExcludedPage" value="{!ep.Id}" assignTo="{!selectedExcludedPage}"/>
+                                                                </apex:commandLink>
+                                                            </td>
+                                                            <td>
+                                                                <apex:outputText value="{!ep.Ad_Unit__r.Name}" style="color:#E00000"/>
+                                                            </td>
+                                                        </tr>
+                                                    </apex:repeat>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </apex:outputText>
+                                </apex:repeat>
+                            </table>
+                        </apex:outputText>          
+                    </apex:outputPanel>
+                </div>
+                        
+                <apex:outputPanel layout="block" styleClass="box box-right" rendered="true"> 
+                    <apex:outputPanel id="sections-right-panel" layout="block">
+                        <!-- Sezioni disponibili -->
+                        <apex:outputText rendered="{!AND(editable, $CurrentPage.parameters.includeMode = 'true', NOT(showPagesInSection))}">
+                            <div class="box-header">
+                                <span class="box-header-title">Seleziona sezioni</span>
+                                <apex:commandButton value="Includi" action="{!includeSections}" status="includeSectionsStatus" rerender="included-sections, excluded-sections" oncomplete="initSectionsTable();"/>
+                                <apex:actionStatus id="includeSectionsStatus">
+                                    <apex:facet name="start">
+                                        <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                                    </apex:facet>
+                                </apex:actionStatus>                                        
+                            </div>
+                            <apex:outputPanel id="excluded-sections" layout="block" styleClass="box-body">
+                                <table id="sections-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-check"></th>
+                                            <th>Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <apex:repeat value="{!sectionOasL}" var="so">
+                                            <tr>
+                                                <td><apex:inputCheckbox value="{!so.checked}"/></td>
+                                                <td>{!so.sectionOas.Name}</td>
+                                            </tr>
+                                        </apex:repeat>
+                                    </tbody>
+                                </table>
+                            </apex:outputPanel>
+                        </apex:outputText>
+                        
+                        <!-- Escludi Pagine di una sezione -->
+                        <apex:outputText rendered="{!showPagesInSection}">
+                            <div class="box-header">
+                                <span class="box-header-title">Escludi pagine</span>
+                                <apex:commandButton value="Annulla" action="{!hidePagesInSection}" status="includeSectionsStatus" rerender="sections-right-panel, included-sections" oncomplete="initSectionsTable();"/>&nbsp;&nbsp;
+                                <apex:commandButton value="Escludi" action="{!excludePagesInSection}" status="includeSectionsStatus" rerender="sections-right-panel, included-sections" rendered="{!pagesInSection.size > 0}" oncomplete="initSectionsTable();"/>                                       
+                            </div>
+                            <apex:outputPanel id="excluded-sectionPages" layout="block" styleClass="box-body">
+                                <table id="sectionPages-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-check"></th>
+                                            <th>Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <apex:repeat value="{!pagesInSection}" var="pis">
+                                            <tr>
+                                                <td><apex:inputCheckbox value="{!pis.checked}"/></td>
+                                                <td>{!pis.adUnit.Name}</td>
+                                            </tr>
+                                        </apex:repeat>
+                                    </tbody>
+                                </table>                                
+                            </apex:outputPanel>
+                        </apex:outputText>
+                    </apex:outputPanel> <!-- Fine sections-right-panel -->
+				</apex:outputPanel>
+            </div> <!-- Fine page-block-content -->     
+        </apex:outputPanel>
+    </apex:form>
+</apex:page>

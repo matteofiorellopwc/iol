@@ -1,0 +1,28 @@
+<apex:page StandardController="Riga_Fatturazione__c" recordSetVar="rows" extensions="ExtensionRaggruppaRigheFatturazione" >
+    <apex:form >
+        <apex:pageBlock >
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Salva" action="{!customSave}"/>
+                <!--
+                    <apex:commandButton value="Ordina" action="{!sort}"/>
+                -->
+                <apex:commandButton value="Annulla" action="{!cancel}"/>                
+            </apex:pageBlockButtons>
+            <apex:pageBlockTable title="Valori per raggruppamento" value="{!rows}" var="r" style="width:1000px;">
+                <apex:column value="{!r.Numero_Riga__c}" />
+                <apex:column value="{!r.Descrizione__c}" />
+                <apex:column value="{!r.Start_date__c}" />
+                <apex:column value="{!r.End_date__c}" />
+                <apex:column value="{!r.Ticket_Fatturazione__c}" rendered="false" />
+            </apex:pageBlockTable>
+
+            <apex:pageBlockSection title="Nuovi valori" columns="1" collapsible="false">
+                <apex:outputField value="{!rowGroup.Numero_Riga__c}" />
+                    <apex:inputCheckbox value="{!rowGroup.Nascondi_date_competenza__c}" selected="false"/>
+                    <apex:inputField required="true" style="width:350px;" value="{!rowGroup.Descrizione__c}" />
+                    <apex:inputField required="true" value="{!rowGroup.Start_date__c}"/>
+                    <apex:inputField required="true" value="{!rowGroup.End_date__c}"/>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,271 @@
+<apex:page standardController="Opportunity" extensions="ExtensionOpportunityIntegrationAdServer" >
+    <style>
+        .img-loading {
+            width: 16px;
+            vertical-align: middle;    
+        }
+        
+        .pb-header {
+            padding: 10px;
+        }
+        
+        #command-bar {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        #command-bar .btn{
+            margin: 0 5px;
+        }
+        
+        #status-bar {
+            text-align: center;
+            font-weight: bold;
+            color: green;
+        }
+        .no-synch {
+            color: red;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+    </style>
+    
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <script>
+        var j$ = jQuery.noConflict();
+    </script>
+    
+    <div style="padding:5px;">
+        <a href="/{!Opportunity.id}">Torna all'<!--'-->opportunità</a>
+    </div>
+    <apex:pageMessage detail="Autenticazione a DFP non effettuata. Impossibile sincronizzare" severity="Error" rendered="{!NOT(dfp.autdfp)}"/>
+
+    <apex:form >
+        <apex:actionFunction name="upsertSfdcToDfp" action="{!upsertSfdcToDfp}" status="dfpUpsertStatus" rerender="page" oncomplete="checkDfpErrorAfterUpsert();">
+            <apex:param name="doReserve" assignTo="{!doReserve}" value=""/>
+        </apex:actionFunction>
+        <apex:actionFunction name="reserveSfdcToDfp" action="{!reserveSfdcToDfp}" status="dfpReserveStatus" rerender="page" oncomplete="checkDfpErrorAfterReserve();"/>
+        <apex:actionFunction name="upsertSfdcToOas" action="{!upsertSfdcToOas}" status="oasUpsertStatus" rerender="page" oncomplete="checkOasErrorAfterUpsert();" />
+        <apex:actionFunction name="reserveSfdcToOas" action="{!reserveSfdcToOas}" status="oasReserveStatus" rerender="page" />
+        <apex:actionFunction name="rerenderErrors" rerender="page" action="{!rerenderError}">
+            <apex:param name="errors" assignTo="{!CPDErrors}" value=""></apex:param>
+        </apex:actionFunction>
+
+        <apex:pageBlock rendered="{!dfp.autdfp}" id="page">
+        
+        <apex:repeat value="{!Opportunity.TeamsTargeted__r}" var="tt" rendered="false">
+            {!tt.idDfp__c}
+        </apex:repeat>
+        <!--
+             <br /> doReserve = {!doReserve} <br />
+             <br /> doUpsertOas = {!doUpsertOas} <br />
+             <br /> isRunning = {!isRunning} <br />
+        -->
+
+             <script>
+                function errorCpdCallback(errors){
+                    rerenderErrors(errors);
+                }    
+                var mustDoReserveInCheckSalesforceControls = false;
+                function sfControlsStatus(doReserve) {
+                    mustDoReserveInCheckSalesforceControls = doReserve;
+                    j$("span[id$='errorsCPD']").hide();
+                    j$('#command-bar').hide();
+                    j$('#erroreDispoCPD').hide();
+                    j$('#controlliSfdc').show();
+                    checkAvailabilityJs();
+                    return false;
+                }         
+                function checkSalesforceControls(){
+                    j$('#controlliSfdc').hide();                    
+                    upsertSfdcToDfp(mustDoReserveInCheckSalesforceControls);
+                }                
+                function checkDfpErrorAfterUpsert() {
+                    if({!doUpsertOas && doReserve}) {                        
+                        reserveSfdcToDfp();
+                    }else if({!doUpsertOas}){
+                        upsertSfdcToOas();
+                    }else{
+                        j$('#command-bar').show();
+                    }
+                }
+                function checkDfpErrorAfterReserve() {
+                    if({!doUpsertOas}) {                        
+                        upsertSfdcToOas();
+                    }else{
+                        j$('#command-bar').show();
+                    }
+                }
+                function checkOasErrorAfterUpsert() {
+                    if({!doUpsertOas && doReserve}) {
+                        reserveSfdcToOas();
+                    }
+                }
+            </script>
+            <div class="pb-header">                   
+                <div id="command-bar">
+                    <c:CpdAvailability showStatus="false" functionError="errorCpdCallback" functionOk="checkSalesforceControls"></c:CpdAvailability>
+
+                    <apex:variable var="CPDAvailabilityPassed" value="{!ISBLANK(CPDErrors)}" />
+                    <apex:variable var="oppReopened" value="{!NOT(ISBLANK(opportunity.Data_ultima_riapertura__c))}" />
+                    <apex:variable var="oppWon" value="{!opportunity.iswon}" />
+                    <apex:variable var="superUserProfile" value="{! IF(CONTAINS(Opportunity.Profili_conferma_e_gestione_post_conferm__c,'_'&$Profile.Name&'_'),true,false) }" />
+                    <apex:variable var="canEditAfterWon" value="{! not(oppWon) || (oppWon && superUserProfile)}" />
+
+                    <apex:outputText rendered="{! oppReopened && not(oppWon) }" value="Non si può risincronizzare manualmente un'opportunità chiusa vinta e poi riaperta" styleClass="no-synch"/>
+                    <apex:outputText rendered="{! not(canEditAfterWon) }" value="Non si ha il permesso di sincronizzare un'opportunità chiusa vinta" styleClass="no-synch"/>
+                    <apex:outputText rendered="{! not(isRunning) && not(oppReopened) && canEditAfterWon }">
+                        <apex:commandButton value="Aggiorna Salesforce → Ad Server" onclick="return sfControlsStatus(false);"/>
+                        <apex:commandButton value="Aggiorna e prenota spazio" onclick="return sfControlsStatus(true);"/> <!-- TODO show only if not reserved -->
+                        <apex:commandButton value="Salva flag e ricarica" action="{!saveAndReload}" />
+                        <!--<apex:commandButton action="{!dfp.releaseOrder}" value="Rilascia campagna" rendered="{!AND(NOT(ISBLANK(Opportunity.id_dfp__c)),Opportunity.Status__c = 'DRAFT',opportunity.ReservationStatus__c = 'RESERVED')}"/>-->
+                        <!-- funziona ma hanno chiesto di toglierlo  -->              
+                        <!-- <apex:commandButton action="{!dfp.upsertOrderDfpToSfdc}" value="Aggiorna Campagna DFP -> Salesforce" rendered="{!AND(Opportunity.Status__c <> 'DRAFT',$Profile.Name = 'System Administrator')}" /> -->
+                    </apex:outputText>
+                </div>
+                <div id="status-bar"> 
+                    <div id="controlliSfdc" style="display:none">
+                            Controlli Salesforce...
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>                    
+                    </div>
+                    <!--<apex:actionStatus id="sfControlsStatus" onstart="j$('#command-bar').hide();">
+                        <apex:facet name="start" >
+                            Controlli Salesforce...
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                        </apex:facet>
+                    </apex:actionStatus>                    -->
+                    <apex:actionStatus id="dfpUpsertStatus" >
+                        <apex:facet name="start">
+                            Sincronizzazione con DFP...
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                        </apex:facet>
+                    </apex:actionStatus>
+                    <apex:actionStatus id="dfpReserveStatus">
+                        <apex:facet name="start">
+                            Prenotazione su DFP...
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                        </apex:facet>
+                    </apex:actionStatus>                    
+                    <apex:actionStatus id="oasUpsertStatus">
+                        <apex:facet name="start">
+                            Sincronizzazione con OAS...
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                        </apex:facet>
+                    </apex:actionStatus>
+                    <apex:actionStatus id="oasReserveStatus" onstop="j$('#command-bar').show();">
+                        <apex:facet name="start">
+                            Prenotazione su OAS...
+                            <img src="/img/loading32.gif" class="img-loading" border="0"/>
+                        </apex:facet>
+                    </apex:actionStatus>                    
+                </div>
+            </div>
+                     
+            
+            <!-- Opportunity common fields -->
+            <apex:pageBlockSection columns="2">
+                <apex:outputField value="{!Opportunity.Name}"/>
+                <apex:outputField value="{!Opportunity.Identificativo_Campagna__c}"/>
+                <apex:outputField value="{!Opportunity.stageName}"/>                                                                    
+                <apex:outputField value="{!Opportunity.LastModifiedDate}"/>
+                <apex:outputField rendered="false" value="{!Opportunity.Tempo_ultima_sincronizzazione__c}"/>
+                <!-- <apex:outputField value="{!opportunity.Stato_sincronizzazione_DFP__c}"/> -->
+                <!-- <apex:outputField value="{!opportunity.ReservationStatusFormula__c}" rendered="{!Opportunity.Status__c = 'DRAFT'}" /> -->
+                <apex:inputField value="{!Opportunity.skipDispoCPD__c}"/>
+            </apex:pageBlockSection> 
+            <apex:pagemessages escape="false" rendered="{!NOT(CPDAvailabilityPassed)}" id="errorsCPD"/>
+            
+            <!-- DFP Fields-->
+            <apex:pageBlockSection title="DFP" columns="1" id="dfp-section">
+                <apex:outputText rendered="{!NOT(doUpsertOas) && CPDAvailabilityPassed}">
+                    <apex:pagemessages escape="false"/>
+                </apex:outputText>
+
+                <apex:outputField value="{!dfp.o.Status__c}"/>
+                <apex:outputField value="{!dfp.o.DFP_url__c}"/>
+                <apex:outputField value="{!dfp.o.Ultima_sincronizzazione_DFP__c}"/>                
+                <apex:inputField value="{!dfp.o.allowOverbook__c}"/>
+                           
+                <apex:pageBlockTable value="{!dfp.sfdcLineItems}" var="li" rendered="{!dfp.sfdcLineItems.size > 0}">
+                    <apex:column headerValue="Nome" >
+                        <a href="/{!li.id}">{!li.Name_Dfp__c}</a>
+                    </apex:column>    
+                    <apex:column width="100px" value="{!li.Delivery_Model__c}"/>    
+                    <apex:column width="100px" headerValue="Start Date">
+                        <apex:outputField value="{!li.Start_Date__c}"/> 
+                        {!li.Start_Hour__c}:{!li.Start_Minute__c}
+                    </apex:column>
+                    <apex:column width="100px" headerValue="End Date">
+                        <apex:outputField value="{!li.End_Date__c}" /> 
+                        {!li.End_Hour__c}:{!li.End_Minute__c}
+                    </apex:column>
+                    <apex:column width="100px" value="{!li.Status__c}"/>        
+                    <apex:column width="150px" value="{!li.reservationStatus__c}" rendered="{!Opportunity.Status__c = 'DRAFT'}"/>
+                    <apex:column value="{!li.Notes_dfp__c}"/>
+                    <!--
+                    <apex:column width="100px" rendered="{!Opportunity.Status__c = 'DRAFT'}">
+                        <apex:outputText rendered="{!AND(li.Status__c = 'DRAFT')}"> 
+                            <apex:commandLink value="Prenota" onclick="if(checkConfermaCampagna() == false){return false;}" action="{!dfp.reserveLineItem}" rendered="{!li.reservationStatus__c = 'UNRESERVED'}" >
+                                <apex:param name="lineItemId" value="{!li.id}" assignTo="{!lineItemId}" />
+                            </apex:commandLink>
+                            <apex:commandLink value="Rilascia" onclick="if(checkConfermaCampagna() == false){return false;}" action="{!dfp.releaseLineItem}" rendered="{!li.reservationStatus__c = 'RESERVED'}" >
+                                <apex:param name="lineItemId" value="{!li.id}" assignTo="{!lineItemId}" />                
+                            </apex:commandLink>
+                        </apex:outputText>
+                    </apex:column>
+                    -->
+                </apex:pageBlockTable>
+            </apex:pageBlockSection>
+
+            <!-- OAS Fields-->
+            <apex:pageBlockSection title="OAS" columns="1">
+                <apex:outputText rendered="{!doUpsertOas && CPDAvailabilityPassed}">
+                    <apex:pagemessages escape="false" />
+                </apex:outputText>
+
+                <apex:outputField value="{!oas.o.Status_oas__c}"/>
+                <apex:outputField value="{!oas.o.Id_Oas__c}"/>
+                <apex:outputField value="{!oas.o.Ultima_sincronizzazione_OAS__c}" />
+                
+                <apex:pageBlockTable value="{!oas.sfdcLineItems}" var="li" rendered="{!oas.sfdcLineItems.size > 0}">
+                    <apex:column headerValue="Nome" >
+                        <a href="/{!li.id}">{!li.Name_Dfp__c}</a>
+                    </apex:column>    
+                    <apex:column width="100px" value="{!li.Delivery_Model__c}"/>    
+                    <apex:column width="100px" headerValue="Start Date">
+                        <apex:outputField value="{!li.Start_Date__c}"/> 
+                        {!li.Start_Hour__c}:{!li.Start_Minute__c}
+                    </apex:column>
+                    <apex:column width="100px" headerValue="End Date">
+                        <apex:outputField value="{!li.End_Date__c}" /> 
+                        {!li.End_Hour__c}:{!li.End_Minute__c}
+                    </apex:column>
+                    <apex:column width="100px" value="{!li.Status_oas__c}"/>        
+                    <apex:column value="{!li.Notes_dfp__c}"/>
+                </apex:pageBlockTable>
+            </apex:pageBlockSection>
+            
+        </apex:pageBlock>
+        
+        <!-- Non rendered opportunity fields -->
+        <apex:outputPanel rendered="false">
+            <apex:outputField value="{!Opportunity.OwnerId}"/>
+            <apex:outputField value="{!Opportunity.Planner__c}"/>
+            <apex:outputField value="{!Opportunity.OrderAutoNumber__c}"/>
+            <apex:outputField value="{!Opportunity.Id}"/>
+            <apex:outputField value="{!Opportunity.Centro_Media__c}"/>
+            <apex:outputField value="{!Opportunity.Centro_Media_Id_DFP__c}"/>
+            <apex:outputField value="{!Opportunity.Account.Id_DFP__c}"/>
+            <apex:outputField value="{!Opportunity.AccountId}"/>
+            <apex:outputField value="{!Opportunity.id_dfp__c}"/>
+            <apex:outputField value="{!Opportunity.allowOverbook__c}"/>
+            <apex:outputField value="{!Opportunity.Ultima_sincronizzazione_DFP__c}"/>
+            <apex:outputField value="{!Opportunity.Status__c}"/>
+            <apex:outputField value="{!Opportunity.DFP_url__c}"/>
+            <apex:outputField value="{!Opportunity.Id_Oas__c}"/>
+            <apex:outputField value="{!Opportunity.Status_oas__c}"/>
+            <apex:outputField value="{!Opportunity.Ultima_sincronizzazione_OAS__c}"/>
+        </apex:outputPanel>
+    </apex:form>
+      
+</apex:page>

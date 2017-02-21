@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>25.0</apiVersion>
+    <availableInTouch>false</availableInTouch>
+    <confirmationTokenRequired>false</confirmationTokenRequired>
+    <description>se arrivo da un editlineitem devo fare un refresh per competare la cancellazione del lineitem che è sull&apos;unload della pagina</description>
+    <label>OpportunityRefresh</label>
+</ApexPage>

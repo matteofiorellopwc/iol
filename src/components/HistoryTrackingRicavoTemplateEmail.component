@@ -1,0 +1,103 @@
+<apex:component controller="ControllerHistoryTrackingRicavoTempEmail" access="global">
+	<apex:attribute name="oppId" type="String" description="opportunity id" assignTo="{!opportunityId}" />
+	<apex:attribute name="ultimaRiapertura" description="data ultima riapertura opportunità" assignTo="{!dataUltimaRiapertura}" type="Datetime" />
+ 
+ 	<apex:variable value="{! 'background:#0C7999; color:#FFFFFF;' }" var="recordHeaderStyle"/>
+ 	<apex:variable value="{! 'border-color: #0C7999; border: 1px; border-style: groove;' }" var="recordBodyStyle"/>
+ 	<apex:variable value="{! 'height: 1px; background: #0C7999; margin-bottom: 30px; margin-top: 30px;' }" var="lineSeparator"/>
+ 	
+ 	{!test} 
+	<span style="color:#2d4c98;font-size:1em; font-weight:bold;margin-top: 10px;margin-bottom: 10px;">
+		Ricavi modificati
+		<apex:outputText rendered="{!ISBLANK(dataUltimaRiapertura)}">
+			dall'ultima apertura
+		</apex:outputText>
+	</span>
+	<br/>
+	<apex:repeat value="{!lineItemsModificati}" var="lineItemModificato">
+		<div style="margin-top: 1px;">
+			<table style="font-size: 0.9em; clear:both; width: 50%">
+				<tr>
+					<th style='{!recordHeaderStyle}'>
+						Codice LI
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Link al line item
+					</th>
+				</tr>
+				<tr>
+					<th style='{!recordBodyStyle}'>
+						<apex:outputText value="{!lineItemsModificati[lineItemModificato]}" />
+					</th>
+					<th style='{!recordBodyStyle}'>
+						<apex:outputLink value="{!LEFT($CurrentPage.URL,FIND('/',$CurrentPage.URL,9))}{!lineItemModificato}">
+							Link
+						</apex:outputLink>
+					</th>
+				</tr>
+			</table>
+			<br/>
+			<table style="font-size: 0.9em; clear:both; width: 100%">
+				<tr>
+					<th style='{!recordHeaderStyle}'>
+						Autore modifica
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Data della modifica
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Anno
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Mese
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Stato
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Campo
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Precedente valore
+					</th>
+					<th style='{!recordHeaderStyle}'>
+						Nuovo valore
+					</th>
+				</tr>
+				<apex:repeat value="{!ricaviModificati[lineItemModificato]}" var="ricavo">
+					<tr>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.authorName}" />
+						</th>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.dataModifica}" />
+						</th>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.anno}" />
+						</th>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.mese}" />
+						</th>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.stato}" />
+						</th>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.editedField}" />
+						</th>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.oldValue}" />
+						</th>
+						<th style='{!recordBodyStyle}'>
+							<apex:outputText value="{!ricavo.newValue}" />
+						</th>
+					</tr>
+				</apex:repeat>
+			</table>
+			<div style='{!lineSeparator}'></div>
+		 </div>
+		
+	</apex:repeat>
+	
+
+                    
+</apex:component>

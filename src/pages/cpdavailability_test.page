@@ -1,0 +1,237 @@
+<apex:page standardController="LineItem__c" extensions="ControllerCpdAvailability_test" sidebar="false" >
+
+<apex:pageMessages id="messages"></apex:pageMessages>
+<style>
+    .multi-select{
+        overflow:auto;
+        height:210px;          
+    }
+    
+    .multi-select-parent{
+        padding: 10px;
+        float:left;          
+    }
+    
+    .pbButton  {display:none;}
+</style>
+
+<link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.qtip,'jquery.qtip.min.css')}" />
+
+<apex:includeScript value="{!URLFOR($Resource.qtip,'jquery.min.js')}" />
+<apex:includeScript value="{!URLFOR($Resource.qtip,'jquery-migrate-1.0.0.js')}" />
+<apex:includeScript value="{!URLFOR($Resource.qtip,'jquery.qtip.min.js')}" />
+
+
+<c:jQueryUtil /> 
+
+<script>
+    function clearCheckBoxes(id){
+        $(escapeID(id)).find('input:checkbox').each(function(){
+            this.checked = false;
+        });
+    }
+    
+    function checkCheckBoxes(check,id){
+        if(check.value == '*'){
+            if(check.checked){    
+                $(escapeID(id)).find('input:checkbox').each(function(){
+                    this.checked = true;
+                });    
+            }else{
+                $(escapeID(id)).find('input:checkbox').each(function(){
+                    this.checked = false;
+                });
+            }
+        }else{
+            if(!check.checked){    
+                $(escapeID(id)).find('input[value="*"]:checkbox ').each(function(){
+                    this.checked = false;
+                });
+            }
+        }
+    }
+
+    var init = true;    
+    $(function(){
+        $('input[id$="startDate"]').bind("focus", function(event){
+            if(init){
+                $('div.datePicker').hide();
+                init = false;
+            }
+        });
+       
+        
+        $('.lilink').each(function(){
+            $(this).qtip({
+                content: {
+                    text: 'Caricamento...<img id="loadingUpdate" src="/img/loading32.gif" style="width:15px;"/>',
+                    ajax: {
+                        url: $(this).attr('miniviewurl')
+                    }
+                },
+                position: {
+                    at: 'bottom left', // Position the tooltip above the link
+                    my: 'top center',
+                    viewport: $(window), // Keep the tooltip on-screen at all times
+                    effect: false // Disable positioning animation
+                },
+                show: {
+                    event: 'mouseover',
+                },
+                style: {
+                    classes: 'qtip-wiki qtip-light qtip-shadow'
+                }
+            })
+        })
+    });
+    
+/*
+                
+*/
+</script>
+
+<apex:form >
+<apex:pageBlock >
+    <apex:outputText rendered="{!ISBLANK(LineItem__c.id)}">
+       <apex:pageBlockSection columns="1" id="filters">
+           <apex:pageBlockSectionItem >
+                    <apex:outputText >{!$ObjectType.Product2.fields.Formato__c.label}</apex:outputText>
+                    <apex:outputText >
+                        <apex:selectList size="1" value="{!formato_selected}" >
+                            <apex:selectOptions value="{!formati}" />
+                            <apex:actionSupport rendered="{! NOT(isRunning) }" event="onchange" action="{!deleteProduct}" reRender="filters" onsubmit="document.getElementById('formatoChange').style.display = 'inline';" />
+                        </apex:selectList>
+                        <img src="/img/loading32.gif" id="formatoChange" style="display:none;width:16px;"/>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+           
+          <apex:pageBlockSectionItem rendered="{!NOT(ISBLANK(formato_selected))}" >
+                    <apex:outputText >Prodotto</apex:outputText>
+                    <apex:outputText >
+                        <apex:selectList size="1" value="{!prodotto_selected}" >
+                            <apex:selectOptions value="{!prodotti[formato_selected]}" />
+                            <apex:actionSupport rendered="{!NOT(isRunning)}" event="onchange" action="{!chooseProduct}" reRender="filters" onsubmit="document.getElementById('prodottoChange').style.display = 'inline';"/>
+                        </apex:selectList>
+                        <img src="/img/loading32.gif" id="prodottoChange" style="display:none;width:16px;"/>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem rendered="{!NOT(ISBLANK(prodotto_selected))}"> 
+                <apex:outputText >{!$ObjectType.Product2.fields.Size__c.label}</apex:outputText>
+                <apex:outputText value="{!size_selected}" ></apex:outputText>
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem rendered="{!size_selected ='Multisize'}">
+                <apex:outputText >{!$ObjectType.Product2.fields.multisize__c.label}</apex:outputText>
+                <apex:outputText value="{!multisize_selected}" ></apex:outputText>
+            </apex:pageBlockSectionItem>
+            
+            <apex:pageBlockSectionItem rendered="{!NOT(ISBLANK(prodotto_selected))}">
+                <apex:outputText >Ad Unit</apex:outputText>
+                <apex:selectList size="1" value="{!ad_unit_cpd_selected}">
+                    <apex:selectOptions value="{!adunitscpd}"/>
+                </apex:selectList>
+            </apex:pageBlockSectionItem>    
+            
+            
+                 
+   
+       
+            
+        </apex:pageBlockSection>
+
+    </apex:outputText>
+    
+    <br style="clear:both;" />
+    <br />   
+    <apex:pageblockSection columns="1">
+        <apex:pageBlockSectionItem >
+            <apex:outputLabel value="Data inizio" for="startDate"/>
+            <apex:inputText id="startDate" value="{!formattedStartDate}"  required="true" onfocus="DatePicker.pickDate(false, '{!$Component.startDate}', false);"/>
+        </apex:pageBlockSectionItem>
+        <apex:pageBlockSectionItem >
+            <apex:outputLabel value="Data fine" for="endDate"/>
+            <apex:inputText id="endDate" value="{!formattedEndDate}"  required="true" onfocus="DatePicker.pickDate(false, '{!$Component.endDate}', false);"/>
+        </apex:pageBlockSectionItem>
+    </apex:pageblockSection>
+        <apex:pageBlockButtons location="bottom">
+            <apex:commandButton value="Controlla disponibilità" action="{!checkAvailability}"/>
+        </apex:pageBlockButtons>    
+</apex:pageBlock>
+</apex:form>
+
+<apex:pageBlock rendered="{!slots.size > 0}">
+    <apex:outputText id="table">
+        <div style="padding: 15px;">
+            <table cellspacing="5">
+                <thead>
+                    <tr><th style="width: 50px;">Colore</th><th>Significato</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="background-color: #0f0;border: 1px solid black"></td>
+                        <td>Campagna confermata</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #ED2;border: 1px solid black"></td>
+                        <td>Percentuale chiusura campagna compresa tra 75% e 100%</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #CCC;border: 1px solid black"></td>
+                        <td>Percentuale chiusura campagna minore 75% </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #FFF;border: 1px solid black"></td>
+                        <td>Conflitto non bloccante (es. stesso settore merceologico) </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <apex:pageBlockTable value="{!slots}" var="s">
+            <apex:column headerValue="Date" style="width:60px;">
+                {!TEXT(DAY(s.d))&'/'&TEXT(MONTH(s.d))&'/'&TEXT(YEAR(s.d))}
+            </apex:column>
+            <apex:column headerValue="Day Of Week" value="{!s.dayOfWeek}" style="width:90px;border-left: 1px solid #D4DADC;"/>
+            <apex:column headerValue="Templates" style="width:200px;" rendered="{!$CurrentPage.parameters.debug = '1'}">
+                <apex:repeat value="{!s.templates}" var="t" >
+                    <div>
+                        <apex:outputField value="{!t.template.name}"/>&nbsp;->&nbsp;<apex:outputText value="{!t.counter}"/>
+                    </div>
+                </apex:repeat>
+            </apex:column>
+            <apex:repeat value="{!ii}" var="i">
+                <apex:column style="width:35px;white-space: nowrap;overflow:hidden;border-left: 1px solid #D4DADC;padding: 0px;" headerValue="{!TEXT(i)&'-'&TEXT(i+1)}">
+                    <apex:repeat value="{!s.slots[i].lis}" var="li">
+                        <div style="width:30px;background:transparent}" >
+                         <a  href="/{!li.Id}" 
+                             id="{!li.Id}_{!TEXT(DAY(s.d))}_{!TEXT(MONTH(s.d))}_{!TEXT(YEAR(s.d))}_{!i}" 
+                             style="background-color:{!IF(CONTAINS(lineItemsNonBloccanti,li.id), '#fff' ,IF(li.opportunity__r.Probability < 75,'#CCC',IF(li.opportunity__r.Probability < 100,'#ED2','#0f0')))}"
+                             miniviewurl="/apex/ViewMiniLineItem?id={!li.id}"                             
+                             class="lilink"
+                                                          
+                              >                            
+                                {!li.brand__c}
+                          </a>
+                          <!--
+                              onblur="LookupHoverDetail.getHover('{!li.Id}_{!TEXT(DAY(s.d))}_{!TEXT(MONTH(s.d))}_{!TEXT(YEAR(s.d))}_{!i}').hide();" 
+                             onfocus="LookupHoverDetail.getHover('{!li.Id}_{!TEXT(DAY(s.d))}_{!TEXT(MONTH(s.d))}_{!TEXT(YEAR(s.d))}_{!i}', '/{!li.Id}/m?retURL=%2F{!li.Id}&isAjaxRequest=1').show();" 
+                             onmouseout="LookupHoverDetail.getHover('{!li.Id}_{!TEXT(DAY(s.d))}_{!TEXT(MONTH(s.d))}_{!TEXT(YEAR(s.d))}_{!i}').hide();" 
+                             onmouseover="LookupHoverDetail.getHover('{!li.Id}_{!TEXT(DAY(s.d))}_{!TEXT(MONTH(s.d))}_{!TEXT(YEAR(s.d))}_{!i}', '/apex/ViewMiniLineItem?id={!li.Id}&isAjaxRequest=1').show();"
+                          -->
+                        </div>
+                    </apex:repeat>
+                    <apex:outputText rendered="{!$CurrentPage.parameters.debug = '1'}" >
+                        <div style="width:30px;background:transparent}" >
+                            <br/>
+                            Goal%<br  />
+                            {!s.slots[i].totalGoal}<br />
+                            ConfirmedGoal%<br />
+                            {!s.slots[i].ConfirmedGoal}
+                        </div>
+                    </apex:outputText>
+                </apex:column>
+            </apex:repeat>               
+        </apex:pageBlockTable>  
+    </apex:outputText>        
+</apex:pageBlock>
+</apex:page>

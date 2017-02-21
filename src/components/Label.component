@@ -1,0 +1,103 @@
+<apex:component controller="ControllerLabel" allowDML="true">
+
+
+<apex:pageMessages ></apex:pageMessages>
+
+<apex:variable var="editMode" value="{!$CurrentPage.parameters.editMode == 'true'}" />
+<apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+
+<style>
+    #labeltable_previous,#labeltable_next{
+        padding:5px;
+    }
+    
+    .sorting_desc{
+        background: url('{!URLFOR($Resource.jquery,'img/sort_desc.png')}') no-repeat scroll right center transparent;
+    }
+    
+    .sorting_asc{
+        background: url('{!URLFOR($Resource.jquery,'img/sort_asc.png')}') no-repeat scroll right center transparent;
+    }    
+    
+    .sorting{
+        background: url('{!URLFOR($Resource.jquery,'img/sort_both.png')}') no-repeat scroll right center transparent;
+    }        
+    
+    #labeltable th{
+        padding-right: 20px;
+        cursor: pointer;
+    }
+    
+    #checkth{
+        cursor: none;
+        background: none;
+    }
+    
+    #labeltable_info{
+        float:left;
+    }
+    #labeltable_paginate{
+        padding-left: 300px;
+    }
+
+</style>
+
+    <apex:form >
+        <div style="width:350px;float:left;">
+            <apex:pageBlock title="Label Applicate">
+                <apex:pageBlockButtons rendered="{!NOT(editMode)}" location="top">
+                    <apex:outputText rendered="{!editable}" >
+                        <input type="button" class="btn" value="add" onclick="window.location.href = window.location.href + '&editmode=true'" />
+                     </apex:outputText>
+                </apex:pageBlockButtons>
+                <apex:pageBlockTable value="{!existingLabel}" var="l" title="Applied Label" style="width:300px;">
+                    <apex:column rendered="{!editable}" >
+                        <apex:commandLink value="delete" action="{!deleteAppLabel}" onclick="if(!confirm('Are you sure?')){return false;}" rendered="{!NOT(editMode)}" >
+                            <apex:param name="appLabelToDelete" value="{!l.id}" assignTo="{!appLabelToDelete}"/>
+                        </apex:commandLink>
+                    </apex:column>
+                    <apex:column style="width:150px;" value="{!l.label__r.name}"/>
+                    <apex:column value="{!l.label__r.description__c}"/>
+                </apex:pageBlockTable>        
+            </apex:pageBlock>
+        </div>
+        <div style="float:left;">
+            <apex:pageBlock mode="edit" rendered="{!editMode}">
+                <apex:pageBlockButtons location="top">
+                    <apex:commandButton value="save" action="{!customSave}"/>
+                </apex:pageBlockButtons>
+                <img id="loading" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                    <table cellpadding="10" id="labeltable">
+                        <thead>
+                            <tr>
+                                <th id="checkth"></th>
+                                <th id="name">Name</th>
+                                <th id="description">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <apex:repeat value="{!labels}" var="l">
+                                <tr>
+                                    <td><apex:inputCheckbox value="{!l.checked}" /></td>
+                                    <td>{!l.label.name}</td>
+                                    <td>{!l.label.description__c}</td>
+                                </tr>
+                            </apex:repeat>
+                        </tbody>
+                    </table>
+                    <script>
+                        $(document).ready(function() {
+                                $('#labeltable').dataTable(
+                                    {
+                                        "aoColumns": [ { "asSorting": [ ] },null,null ]
+                                    }
+                                );
+                        });
+                    </script>
+            </apex:pageBlock>       
+        </div>             
+    </apex:form>        
+</apex:component>

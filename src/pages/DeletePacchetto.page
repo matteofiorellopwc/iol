@@ -1,0 +1,49 @@
+<apex:page standardController="Pacchetto_Combo_Opportunity__c" extensions="ExtensionDeleteFromDfp" action="{!init}">
+    <style>        
+        .box-info {
+        	text-align: left;
+            -webkit-border-radius: 4px;
+            -moz-border-radius: 4px;
+            border-radius: 4px;
+        	padding: 10px 12px;
+        	border: 1px solid #39f;
+        	background: #FFFFCC;
+        	width: 600px;
+        	margin: 50px auto 20px auto;
+        }
+        
+        .box-button {
+        	text-align: center;
+        }
+        
+        .msgIcon {
+            background-image: url(/img/msg_icons/info24.png);
+            background-position: 0 0;
+            width: 24px;
+            height: 24px;
+        	vertical-align: middle;
+        	margin-right: 10px;
+        }        
+    </style>
+    
+    <apex:pageMessages />
+    <apex:form >
+        <apex:outputField value="{!Pacchetto_Combo_Opportunity__c.Opportunity__c}" rendered="false"/>
+        <apex:outputField value="{!Pacchetto_Combo_Opportunity__c.Opportunity__r.DataPrimaChiusaVinta__c}" rendered="false"/>
+        <apex:outputField value="{!Pacchetto_Combo_Opportunity__c.Cancellato__c}" rendered="false"/>
+        
+        <apex:outputPanel rendered="{!NOT(hasErrors)}">
+            <div class="box">
+                <div class="box-info">
+                    <img alt="INFO" class="msgIcon" src="/s.gif" title="INFO"/>
+                    Eliminare il pacchetto? Se si conferma l'operazione, i line-items del pacchetto verranno eliminati logicamente. Sarà possibile ripristinare il pacchetto dalla sua pagina di dettaglio. Per eliminare dagli Ad Server il pacchetto è necessario chiudere vinta l'opportunity.
+                </div>
+                <div class="box-button">
+                    <apex:commandButton action="{!deleteSfdcAndDfpObj}" value="Si" style="width:50px;"/>
+                	<apex:commandButton action="{!back}" value="No" style="width:50px; margin-left: 25px"/>
+                </div>
+        	</div>           
+        </apex:outputPanel>
+        <apex:commandLink action="{!back}" value="Torna indietro" rendered="{!hasErrors}" />
+    </apex:form>    
+</apex:page>

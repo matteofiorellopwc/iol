@@ -1,0 +1,71 @@
+<apex:page controller="ControllerManualBillRows" tabStyle="Ticket_Fatturazione__c">
+<style>
+    .dateFormat{
+        display: none;
+    }
+</style>
+<apex:form >
+    <apex:pagemessages />
+    <apex:pageBlock rendered="{!aaj = ''}">
+        <apex:pageBlockSection title="Aggiungi righe" collapsible="false">
+            <apex:pageBlockTable value="{!table}" var="item" rendered="{!tkt.Ticket_manuale__c}" style="width:1000px;">
+                <apex:column >
+                    <apex:inputCheckbox value="{!item.sel}"/>
+                </apex:column>
+                <apex:column headerValue="Line Item" width="300px;">
+                    <apex:outputField value="{!item.li.Name_Dfp__c}" />
+                </apex:column>
+                <apex:column headerValue="Pacchetto" width="300px;">
+                    <apex:outputField value="{!item.li.Pacchetto_Combo_Opportunity__r.Name}" />
+                </apex:column>
+                <apex:column headerValue="Descrizione">
+                    <apex:inputField style="width:350px;" value="{!item.row.Descrizione__c}" rendered="{!ISBLANK(item.li.Pacchetto_Combo_Opportunity__r.Name)}" />
+                    <apex:outputField style="width:350px;" value="{!item.row.Descrizione__c}" rendered="{!NOT(ISBLANK(item.li.Pacchetto_Combo_Opportunity__r.Name))}" />
+                </apex:column>
+                <apex:column headerValue="Prezzo" width="100px;">
+                    <apex:inputField style="width:90px;" value="{!item.row.Prezzo_unitario__c}"/>
+                </apex:column>
+                <apex:column headerValue="Data inizio" width="100px;">
+                    <apex:inputField value="{!item.row.Start_date__c}"/>
+                </apex:column>  
+                <apex:column headerValue="Data fine" width="100px;">
+                    <apex:inputField value="{!item.row.End_date__c}"/>
+                </apex:column>  
+            </apex:pageBlockTable>
+        </apex:pageBlockSection>
+        <apex:pageBlockButtons >
+            <apex:commandButton value="Crea righe" action="{!saveRows}" rendered="{!tkt.Ticket_manuale__c}" />
+            <apex:commandButton value="Indietro" action="{!back}"/>
+        </apex:pageBlockButtons>
+    </apex:pageBlock>
+    <apex:pageBlock id="pblock" rendered="{!aaj <> ''}">
+        <apex:actionPoller enabled="{!aaj <> ''}" action="{!getJobStatus}" rerender="pblock" interval="5" />    
+        <apex:pageBlockSection columns="1">
+            <apex:pageBlockSectionItem rendered="{!AND(aaj.Status <> 'Completed',aaj <> '')}" >
+                <apex:outputText >Creazione spaccati in corso</apex:outputText>
+                <apex:outputText >
+                    <apex:outputText >
+                        <img id="loadingUpdate" src="/img/loading32.gif" style="width:20px;"/>
+                    </apex:outputText>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputText >Stato</apex:outputText>
+                <apex:outputText >{!aaj.Status}</apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputText >Numero di righe</apex:outputText>
+                <apex:outputText >{!aaj.TotalJobItems}</apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputText >Processate</apex:outputText>
+                <apex:outputText >{!aaj.JobItemsProcessed}</apex:outputText>
+            </apex:pageBlockSectionItem>   
+            <apex:pageBlockSectionItem rendered="{!aaj.status = 'Completed'}">
+                <apex:outputLabel ></apex:outputLabel>
+                <apex:outputLabel ><a href="/{!tkt.id}">Torna al ticket</a></apex:outputLabel>
+            </apex:pageBlockSectionItem>         
+        </apex:pageBlockSection>
+    </apex:pageBlock>       
+</apex:form>
+</apex:page>

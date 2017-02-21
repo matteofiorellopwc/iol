@@ -1,0 +1,215 @@
+<apex:page standardController="Opportunity" extensions="OpportunityViewExtension">
+    <style>
+        .action-link {
+        	color: #015BA7 !important;
+        	font-weight: normal;
+    		text-decoration: none;
+        }
+        
+        .action-hover {
+    		text-decoration: underline;
+        }
+        
+        .action-link-separator {
+        	color: #999999;
+        }
+        
+        .align-right {
+        	text-align: right;
+        }
+        
+        .align-center {
+        	text-align: center;
+        }
+        
+        .no-records {
+        	border: 1px solid #E0E3E5;
+        	padding: 5px;
+        }
+    </style>
+    <script>
+        //PULSANTE AGGIUNGI PRODOTTO
+        function aggiungiProdotto(){
+			if({!NOT(CONTAINS(Opportunity.Profili_senza_permesso_aggiunta_prodotto__c,'_'&$Profile.Name&'_'))}){
+				if({!Opportunity.In_approvazione__c} == 0){
+					if({!AND( Opportunity.IsWon , NOT(CONTAINS( Opportunity.Profili_conferma_e_gestione_post_conferm__c , '_'&$Profile.Name&'_' )))} ){
+						alert('Non ha il permesso di aggiungere prodotti ad un\'opportunità chiusa vinta!');
+					}else{
+						top.location.replace('/apex/addProduct?id={!Opportunity.Id}');
+					}
+				}else{
+					alert('Non si possono aggiungere prodotti ad un\'opportunità in approvazione!');
+				}
+			}else{
+				alert('Non si ha il permesso di aggiungere prodotti');
+			}	
+		}
+        
+        
+        //PULSANTE AGGIUNGI PACCHETTO
+        function aggiungiPacchetto(){
+        	if({!NOT(CONTAINS(Opportunity.Profili_senza_permesso_aggiunta_prodotto__c,'_'&$Profile.Name&'_'))}){ 
+				if({!Opportunity.In_approvazione__c} == 0){ 
+					if({!AND( Opportunity.IsWon , NOT(CONTAINS( Opportunity.Profili_conferma_e_gestione_post_conferm__c , '_'&$Profile.Name&'_' )))} ){ 
+   						alert('Non ha il permesso di aggiungere prodotti ad un\'opportunità chiusa vinta!'); 
+					}else{ 
+   						top.location.replace('/apex/addPacchettoCombo?id={!Opportunity.Id}'); 
+					} 
+				}else{ 
+   					alert('Non si possono aggiungere prodotti ad un\'opportunità in approvazione!'); 
+				} 
+			}else{ 
+				alert('Non si ha il permesso di aggiungere prodotti'); 
+        	}	
+		}
+        
+        //CLONA LINE-ITEMS
+        function clonaLineItems(){
+        	window.location.href= '/apex/cloneLineItem?id={!Opportunity.Id}';
+		}
+    </script>    
+    
+    <apex:pageMessages />
+	<apex:detail subject="{!opportunity}" relatedList="false" title="true" showChatter="true" inlineedit="true"/>
+    
+	<apex:form >
+		<apex:pageBlock id="lineItems" rendered="{!showRelatedListLI}">  
+            <apex:panelGrid columns="2" style="padding-top: 0; margin-bottom:10px; width: 100%">               
+                <apex:panelGroup >
+                    <img title="Line Item" alt="Line Item" src="/img/icon/wrench24.png" style="vertical-align: middle"/>
+                    <h3 style="font-size: 1.2em;">Line Items</h3>
+                </apex:panelGroup>
+                <apex:panelGroup >
+                    <apex:commandButton value="Aggiungi prodotto" onclick="aggiungiProdotto(); return false;"/>&nbsp;
+                    <apex:commandButton value="Aggiungi pacchetto" onclick="aggiungiPacchetto(); return false;"/>&nbsp;
+                    <apex:commandButton value="Clona line-item" onclick="clonaLineItems(); return false;"/>
+                </apex:panelGroup>
+            </apex:panelGrid>
+            <apex:outputPanel layout="block" styleClass="no-records" rendered="{!lineItemL.size == 0}">
+            	Nessun record da visualizzare    
+            </apex:outputPanel>    
+            <apex:pageBlockTable value="{!lineItemL}" var="li" rendered="{!lineItemL.size > 0}">
+                <!-- Action (renderizzata solo se si hanno i permessi in scrittura sui line-items)-->
+                <apex:column width="90" rendered="{!canEditLineItem}">
+                    <apex:facet name="header">
+                        Azione
+                    </apex:facet>
+                    	<apex:commandLink styleClass="action-link" action="{!URLFOR($Action.LineItem__c.Edit, li.Id)}">Modifica</apex:commandLink>
+                    	<span class="action-link-separator">&nbsp;|&nbsp;</span>
+                    	<apex:outputLink styleClass="action-link" value="DeleteLineItem?id={!li.Id}&retURL={!opportunity.Id}">Canc</apex:outputLink>   
+                </apex:column>
+                
+                <!-- Nome DFP --> 
+                <apex:column >
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.Nome_DFP__c.Label} {!IF(sortExpression=='Name_Dfp__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                            <apex:param value="Name_Dfp__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputLink value="{!URLFOR($Action.LineItem__c.View, li.Id)}">{!li.Name_Dfp__c}</apex:outputLink>
+                </apex:column>
+                
+                <!-- Pacchetto Opportunità --> 
+                <apex:column >
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.Pacchetto_Combo_Opportunity__c.Label} {!IF(sortExpression=='Pacchetto_Combo_Opportunity__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                            <apex:param value="Pacchetto_Combo_Opportunity__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.Pacchetto_Combo_Opportunity__c}"/>
+                </apex:column>
+                
+                <!-- Product Family --> 
+                <apex:column >
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.ProductFamily__c.Label} {!IF(sortExpression=='ProductFamily__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                            <apex:param value="ProductFamily__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.ProductFamily__c}"/>
+                </apex:column>
+                
+                <!-- Delivery Model --> 
+                <apex:column >
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.Delivery_Model__c.Label} {!IF(sortExpression=='Delivery_Model__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                            <apex:param value="Delivery_Model__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.Delivery_Model__c}"/>
+                </apex:column>
+                
+                <!-- Start date -->
+                <apex:column >
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.Start_Date__c.Label} {!IF(sortExpression=='Start_Date__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                            <apex:param value="Start_Date__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.Start_Date__c}"/>
+                </apex:column>
+                
+                <!-- End date -->
+                <apex:column >
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.End_Date__c.Label} {!IF(sortExpression=='End_Date__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                            <apex:param value="End_Date__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.End_Date__c}"/>
+                </apex:column>
+            
+                <!-- Prezzo unitario net net -->
+                <apex:column styleClass="align-right">
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.Prezzo_net__c.Label} {!IF(sortExpression=='Prezzo_net__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                          <apex:param value="Prezzo_net__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.Prezzo_net__c}"/>
+                </apex:column>
+                
+                <!-- Quantità -->
+                <apex:column styleClass="align-center">
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.Quantita__c.Label} {!IF(sortExpression=='Quantita__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                          <apex:param value="Quantita__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.Quantita__c}"/>
+                </apex:column>
+                
+                <!-- Totale -->
+                <apex:column styleClass="align-right">
+                    <apex:facet name="header">   
+                        <apex:commandLink action="{!ViewData}" value="{!$ObjectType.LineItem__c.Fields.Totale__c.Label} {!IF(sortExpression=='Totale__c',IF(sortDirection='ASC','▲','▼'),'')}" reRender="lineItems">
+                          <apex:param value="Totale__c" name="column" assignTo="{!sortExpression}" ></apex:param>
+                        </apex:commandLink>
+                    </apex:facet>
+                    <apex:outputField value="{!li.Totale__c}"/>
+                </apex:column>
+                
+                <!-- Breakeven check -->
+                <apex:column value="{!li.Breakeven_check__c}" styleClass="align-center"/>
+            </apex:pageBlockTable>    
+		</apex:pageBlock>
+    </apex:form>
+    
+    <apex:relatedList list="Pacchetti_Combo_Opportuni__r"/>
+    <apex:relatedList list="TeamsTargeted__r"/>
+    <apex:relatedList list="Quotes" rendered="{!quoteNotHidden}"/>
+    <apex:relatedList list="ProcessSteps"/>
+    <apex:relatedList list="OpenActivities"/>
+    <apex:relatedList list="ActivityHistories" />
+    <apex:relatedList list="NotesAndAttachments" />
+    <apex:relatedList list="OpportunityHistories"/>
+    <apex:relatedList list="Opportunity__r" rendered="{!ticketNotHidden}"/>
+    <apex:relatedList list="OpportunityTeamMembers"/>
+    
+    <apex:outputPanel rendered="false">
+        <apex:outputText value="{!Opportunity.Profili_senza_permesso_aggiunta_prodotto__c}"/>
+        <apex:outputText value="{!Opportunity.In_approvazione__c}"/>
+        <apex:outputText value="{!Opportunity.IsWon}"/>
+        <apex:outputText value="{!Opportunity.Profili_conferma_e_gestione_post_conferm__c}"/>
+    </apex:outputPanel> 
+</apex:page>

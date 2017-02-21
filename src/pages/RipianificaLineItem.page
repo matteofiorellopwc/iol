@@ -1,0 +1,72 @@
+<apex:page controller="ControllerRipianificaLineItem" tabStyle="Opportunity" sidebar="false" cache="false" action="{!updateLineItem}">
+<style>
+    .picklistTime{  width: 50px; }
+    .activeTab { background-color: #236FBD; color:white; background-image:none }
+    .inactiveTab { background-color: lightgrey; color:black; background-image:none}
+    .dateFormat {display:none;}
+    
+    table.multiSelectPicklistTable select{
+        width: 190px;
+        height: 160px;
+    }
+    
+    /*** Page-block Facet Header ***/
+    .facetHeaderTitle {
+        width: 300px;
+        text-align: center; 
+    }
+    
+    .facetHeaderTitle img{
+        margin-right: 10px; 
+        vertical-align: middle;
+        position: relative;
+        bottom: 3px;
+    }
+
+    td.valoreRipianificabile {
+        color: red;
+        font-weight: bold;
+    }
+</style>
+<apex:sectionHeader subtitle="Verifica Minor Ricavi"/>
+<apex:form >
+<apex:pageMessages escape="false" ></apex:pageMessages>
+    <apex:pageBlock id="pageBlock">
+        <apex:facet name="header">
+            <apex:panelGrid columns="1" columnClasses="facetHeaderTitle">
+                <apex:panelGroup >
+                    <apex:commandButton action="{!goBack}" value="Torna al Line Item" />
+                    <apex:commandButton action="{!rimozioneParteNonErogata}" onclick="if(!confirm('Attenzione: se si procede con la rimozione della parte non erogata questo line item non sarà più modificabile e verrà sospesa l\'erogazione su Salesforce.com e sull\'Ad Server.')){return false;}" value="Rimuovi parte non erogata" rendered="{!AND(NOT(errorOccurred),NOT(lineItem.RimozioneParteNonErogata__c),NOT(hideMinorRicavoButton))}" />
+                    <apex:commandButton action="{!ripianifica}" onclick="if(!confirm('Attenzione: se si procede con la ripianificazione il line item ripianificato non sarà più modificabile e verrà sospesa l\'erogazione su Salesforce.com e sull\'Ad Server.')){return false;}" value="Ripianifica per Under Delivery" rendered="{!AND(NOT(errorOccurred),NOT(hideRipianificaButton))}" />
+                </apex:panelGroup>    
+            </apex:panelGrid>
+        </apex:facet>
+        <apex:pageBlockSection columns="2" >
+            <apex:outputField value="{!lineItem.Name_Dfp__c}" label="Line Item"/>
+            <br/>
+            <apex:outputField value="{!lineItem.Start_Date__c}" />
+            <apex:outputField value="{!lineItem.End_Date__c}" />
+            <apex:outputField value="{!lineItem.Prezzo_net_net__c}"/>
+            <br/>
+        </apex:pageBlockSection>
+        <apex:pageBlockSection columns="2" title="Confronto venduto erogato" >
+            <apex:outputField value="{!lineItem.Quantita__c}" label="Impressions vendute"  />
+            <apex:outputField value="{!lineItem.Totale__c}" label="Totale venduto" />
+            <apex:outputField value="{!lineItem.ImpressionErogateMinorRicavo__c}" />
+            <apex:outputField value="{!lineItem.Totale_erogato__c}" />
+            <apex:outputText value="{!lineItem.Quantita__c - lineItem.ImpressionErogateMinorRicavo__c}" label="Impressions ripianificabili" />
+            <apex:outputField value="{!lineItem.totaleRipianificabile__c}" />
+            <br/>
+            <apex:outputField value="{!lineItem.Totale_ripianificato_positivo__c}" />
+            <br/>
+            <apex:pageBlockSectionItem dataStyleClass="valoreRipianificabile">
+                <apex:outputLabel >{!$ObjectType.LineItem__c.fields.ValoreRipianificabile__c.label}</apex:outputLabel>
+                <apex:outputField value="{!lineItem.ValoreRipianificabile__c}" />
+            </apex:pageBlockSectionItem>
+<!--
+            <apex:outputField styleClass="valoreRipianificabile" value="{!lineItem.ValoreRipianificabile__c}" /> 
+            -->
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</apex:form>
+</apex:page>

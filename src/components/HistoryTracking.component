@@ -1,0 +1,20 @@
+<apex:component controller="ControllerHistoryTracking">
+    <apex:attribute name="obj" type="LineItem__c" description="Sobject" />
+
+    <apex:pageBlock >
+        <apex:pageBlockSection Title="Cronologia modifiche" collapsible="false" >
+            <apex:pageBlockTable value="{!histories}" var="i" >
+                <apex:column value="{!i.CreatedById}" />
+                <apex:column value="{!i.CreatedDate}"/>
+                <apex:column value="{!i.Field}" />
+                <apex:column headerValue="Vecchio valore">
+                    {!if(fieldMap[i.id &'_old'] != '__',fieldMap[i.id &'_old'],i.OldValue)}
+                </apex:column>
+                <apex:column headerValue="Nuovo valore">
+                    {!if(fieldMap[i.id &'_new'] != '__',fieldMap[i.id &'_new'],i.NewValue)}
+                </apex:column>
+            </apex:pageBlockTable>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+
+</apex:component>

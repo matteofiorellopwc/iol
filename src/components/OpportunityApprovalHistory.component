@@ -1,0 +1,10 @@
+<apex:component controller="OpportunityApprovalHistoryController" access="global">
+    <apex:attribute name="opptyId" assignTo="{!opptyId}" type="String" description="Id of the opportunity"/>  
+    <apex:dataTable cellpadding="3" cellspacing="3" value="{!approvalSteps}" var="step">
+        <apex:column value="{!step.SystemModstamp}" headerValue="Data"/>
+        <apex:column value="{!step.StepStatus}" headerValue="Stato"/>
+        <apex:column value="{!step.OriginalActorId}" headerValue="Assegnata a"/>
+        <apex:column value="{!step.ActorID}" headerValue="Approvatore"/>
+        <apex:column value="{!step.Comments}" headerValue="Commenti"/>
+    </apex:dataTable>
+</apex:component>

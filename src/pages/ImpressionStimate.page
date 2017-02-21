@@ -1,0 +1,100 @@
+<apex:page controller="ControllerImpressionStimate">
+   <apex:pageMessages ></apex:pageMessages>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+    <apex:form >
+        <apex:actionFunction name="updateProdJs" action="{!updateProd}"/>
+        <apex:pageBlock title="Ricerca prodotti">
+            <apex:pageBlockSection columns="1">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >{!$ObjectType.Product2.fields.name.label}</apex:outputLabel>
+                    <apex:inputText value="{!prodname}"/>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >{!$ObjectType.Product2.fields.family.label}</apex:outputLabel>
+                    <apex:selectList value="{!family}" size="1" onchange="updateProdJs();">
+                        <apex:selectOptions value="{!famiglie}" />
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >{!$ObjectType.Product2.fields.Formato__c.label}</apex:outputLabel>
+                    <apex:selectList value="{!formato}" size="1">
+                        <apex:selectOptions value="{!formati}" />
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>            
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >{!$ObjectType.Product2.fields.Canale_Primario__c.label}</apex:outputLabel>
+                    <apex:selectList value="{!canale_primario}" size="1">
+                        <apex:selectOptions value="{!canali_primari}" />
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>                  
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >{!$ObjectType.Product2.fields.Fascia_Oraria__c.label}</apex:outputLabel>
+                    <apex:selectList value="{!fascia}" size="1">
+                        <apex:selectOptions value="{!fasce}" />
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>                                  
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >{!$ObjectType.Product2.fields.Delivery_Model__c.label}</apex:outputLabel>
+                    <apex:selectList value="{!deliveryModel}" size="1">
+                        <apex:selectOptions value="{!deliveryModels}" />
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>                                                  
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >{!$ObjectType.Product2.fields.Size__c.label}</apex:outputLabel>
+                    <apex:selectList value="{!size}" size="1">
+                        <apex:selectOptions value="{!sizes}" />
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>                                                              
+            </apex:pageBlockSection>                
+
+           
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton action="{!search}" value="Cerca" />
+            </apex:pageBlockButtons>
+        </apex:pageBlock>
+        <apex:pageBlock title="Impressions Stimate" rendered="{!products.size > 0}">
+             <apex:pageBlockSection columns="1">
+                 <apex:pageBlockSectionItem >
+                     <apex:outputLabel >
+                         {!$ObjectType.Product2.fields.Impressions_Stimate__c.label}
+                         <apex:outputText rendered="{!NOT(ISBLANK($ObjectType.Product2.fields.Impressions_Stimate__c.inlineHelpText))}">
+                             ({!$ObjectType.Product2.fields.Impressions_Stimate__c.inlineHelpText})
+                         </apex:outputText>
+                     </apex:outputLabel>
+                     <apex:inputText value="{!Impressions_Stimate}"/>
+                 </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+             <apex:pageBlockButtons location="bottom">
+                <apex:commandButton action="{!saveImpressionsStimate}" value="Salva impressions" />
+            </apex:pageBlockButtons>   
+        </apex:pageBlock>
+        <script>
+            function checkAll(){
+                   if($('#allCheckbox').is(':checked')){
+                       $('.checkProd').attr('checked','checked');
+                   }else{
+                       $('.checkProd').removeAttr('checked');
+                   }
+            }
+        </script>
+        <apex:pageBlock id="prodottitable" rendered="{!products.size > 0}">
+            <apex:pageBlockTable value="{!products}" var="p">
+                <apex:column >
+                    <apex:facet name="header">
+                        <input checked="checked" type="checkbox" id="allCheckbox" onchange="checkAll();" />
+                    </apex:facet>
+                    <apex:inputCheckbox styleClass="checkProd" value="{!p.checked}"/>
+                </apex:column>
+                <apex:column value="{!p.prod.name}" />
+                <apex:column value="{!p.prod.family}" />
+                <apex:column value="{!p.prod.Formato__c}" />                
+                <apex:column value="{!p.prod.Size__c}" />
+                <apex:column value="{!p.prod.Delivery_Model__c}" />
+                <apex:column value="{!p.prod.Canale_Primario__c}" />
+                <apex:column value="{!p.prod.Fascia_Oraria__c}" />
+                <apex:column value="{!p.prod.Impressions_Stimate__c}" />
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

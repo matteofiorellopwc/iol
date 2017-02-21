@@ -1,0 +1,33 @@
+<apex:page controller="ControllerOauthSalesforce" action="{!getToken}" >
+<apex:form >
+    <apex:pageMessages ></apex:pageMessages>
+    <apex:pageBlock title="Test OAUTH">
+        <apex:commandButton value="getCode" action="{!getCode}"/>
+        <apex:pageBlockSection collapsible="false" columns="1">
+            <br />
+            <apex:pageBlockSectionItem >
+                <apex:outputText >instance_url</apex:outputText>
+                <apex:outputText >{!tr.instance_url}</apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputText >access_token </apex:outputText>
+                <apex:outputText >{!tr.access_token}</apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputText >refresh_token</apex:outputText>
+                <apex:outputText >{!tr.refresh_token}</apex:outputText>
+            </apex:pageBlockSectionItem>            
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+    <apex:pageBlock title="Refresh token">
+        <apex:commandButton value="refreshToken" action="{!refreshToken}"/>
+        <apex:pageBlockSection collapsible="false" columns="1">
+            <br />
+            <apex:pageBlockSectionItem >
+                <apex:outputText >refresh token</apex:outputText>
+                <apex:inputText style="width:800px;" value="{!refreshtoken}" ></apex:inputText>
+            </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</apex:form>    
+</apex:page>

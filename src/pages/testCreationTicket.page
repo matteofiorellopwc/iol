@@ -1,0 +1,6 @@
+<apex:page controller="ControllerTestCreationTicket">
+<apex:form >
+<apex:commandButton value="Crea ticket" action="{!creaTicket}" /> per la data    <apex:inputField value="{!o.closeDate}" onclick="" />
+
+</apex:form>    
+</apex:page>

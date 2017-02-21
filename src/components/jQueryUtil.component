@@ -1,0 +1,15 @@
+<apex:component >
+    <script type="text/javascript">
+    
+        function escapeID(myid) {
+           if(myid.length>0)
+               if(myid.substring(0,1)=='#')
+                   myid=myid.substring(1);
+           myret = '#' + myid;
+           if(myid.indexOf("\\")==-1)
+               myret = '#' + myid.replace(/(:|\.)/g,'\\\\$1');
+           return myret;
+        }    
+    
+    </script>
+</apex:component>

@@ -1,0 +1,19 @@
+<apex:page standardController="Opportunity" extensions="extensionCloneOpportunity">
+    <apex:pageMessage severity="error" title="Al momento non è possibile clonare lineitem di opportunità con pacchetti" rendered="{!hasPack}"  />
+    <a href="/{!opportunity.id}">torna all'<!--'-->opportunità</a>
+    <apex:outputField value="{!Opportunity.Status__c}" rendered="false" />
+    <apex:form rendered="{!NOT(hasPack)}">
+        <apex:pageMessages escape="false" ></apex:pageMessages>
+        <apex:pageBlock >
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Clona" action="{!cloneLineItems}"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockTable value="{!lineitemsWithoutPcp}" var="li">
+                <apex:column >
+                    <apex:inputCheckbox value="{!li.checked}" />
+                </apex:column>
+                <apex:column value="{!li.li.Name_Dfp__c}"/>
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+    </apex:form>    
+</apex:page>

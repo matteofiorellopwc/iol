@@ -1,0 +1,55 @@
+<apex:page controller="ControllerDfpDataModelIntegration">
+        <apex:form >
+        <apex:pageBlock id="pblock">
+            <apex:pageBlockButtons location="top">
+                <apex:commandButton value="Sync DFP Data Model" action="{!syncDfpDataModel}" rerender="pblock"  />
+            </apex:pageBlockButtons> 
+            <apex:actionPoller enabled="{!aaj <> ''}" action="{!getJobStatus}" rerender="pblock" interval="5" />    
+            <apex:pageBlockSection columns="1">
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >Status</apex:outputText>
+                    <apex:outputText >{!aaj.Status}</apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >Totali</apex:outputText>
+                    <apex:outputText >{!aaj.TotalJobItems}</apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >Processati</apex:outputText>
+                    <apex:outputText >{!aaj.JobItemsProcessed}</apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputText ></apex:outputText>
+                    <apex:outputText >
+                        <apex:outputText rendered="{!AND(aaj.Status <> 'Completed',aaj <> '')}">
+                            <img id="loadingUpdate" src="/img/loading32.gif" style="width:20px;"/>
+                        </apex:outputText>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>   
+                <apex:pageBlockSectionItem rendered="{!aaj.status = 'Completed'}">
+                    <apex:outputLabel ></apex:outputLabel>
+                    <apex:outputLabel ><a href="/apex/OasDataModelIntegration">ricarica</a></apex:outputLabel>
+                </apex:pageBlockSectionItem>         
+            </apex:pageBlockSection>
+        </apex:pageBlock>            
+    </apex:form>
+    <apex:tabPanel >
+        <apex:tab label="Ad Unit">
+            <apex:listViews type="AdUnit__c"/>        
+        </apex:tab>
+        <apex:tab label="Placement">
+            <apex:listViews type="Placement__c"/>
+        </apex:tab>
+        <apex:tab label="Label">
+            <apex:listViews type="Label__c"/>
+        </apex:tab>
+        <apex:tab label="Custom Targeting">
+            <apex:listViews type="CustomTargetingKey__c" />
+        </apex:tab>
+        <apex:tab label="Teams">
+            <apex:listViews type="Team__c"/>
+        </apex:tab>
+    </apex:tabPanel>
+
+    
+</apex:page>

@@ -1,0 +1,309 @@
+<apex:page controller="AdUnitsDfpCtrl" title="Ad Units DFP">
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+
+    <style>
+        .page-block-content {
+            overflow: auto;
+        }
+                
+        .box-header {
+            margin: 0 auto;
+            width: 95%;
+            overflow: auto;
+            line-height: 30px;
+            font-weight: bold;
+            font-size: 1.2em;
+            padding-bottom: 10px;
+        }
+        
+        .box-header-title {
+            bottom: 33px;
+            margin-right: 2%;
+            position: relative;
+        }
+        
+        .box-body {
+            margin: 0 auto;
+            width: 95%;
+        }
+        
+        .box-left {
+            float: left;
+            width: 50%;
+        }
+        
+        .box-left .box-body{
+            border: 1px solid #E0E3E5;
+            background: #FFFFFF;
+        }
+        
+        .box-right {
+            margin-left: 50%;
+            width: 48%;
+        }
+        
+        .box-body {
+            background: #FFFFFF;
+            border: 1px solid #E0E3E5;
+        }
+        
+        .action-link {
+            color: #015BA7 !important;
+            font-weight: normal;
+            text-decoration: none;
+        }
+        
+        .col-action {
+            padding: 6px 2px;
+        }
+        
+        .col-name {
+            font-weight: bold;
+            padding: 6px 2px;
+        }
+        
+        .col-excluded-pages {
+            vertical-align: middle !important;
+            text-align: center;
+            font-size: 0.8em;
+            color: #434343 !important;
+        }
+        
+        /* Data Table */
+        .sorting_desc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_desc.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .sorting_asc {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_asc.png')}') no-repeat scroll right center transparent;
+        }    
+        
+        .sorting {
+            background: url('{!URLFOR($Resource.jquery,'img/sort_both.png')}') no-repeat scroll right center transparent;
+        }
+        
+        .dataTables_length {
+            float: left;
+            width: 40%; 
+        }
+        
+        .dataTables_filter {
+            float: right;
+            text-align: right;
+            width: 50%;
+        }
+        
+        .ui-toolbar {
+            padding: 5px;
+        }
+        
+        .ui-widget-header {
+            background: #DDB929;
+            overflow: auto;
+            color: white;
+        }
+        
+         .ui-widget-header a{
+            color: white;
+        }
+        
+        .ui-widget-header a:hover{
+            color: white;
+        }
+        
+        .dataTables_info {
+            float: left;
+            width: 50%;
+        }
+        
+        .dataTables_paginate {
+            float: right;
+            text-align: right;
+            width: auto;
+        }
+        
+        .ui-state-default {
+            background: #F2F3F3;
+        }
+        
+        #pages-table_previous, #paginate_enabled_next,
+        #pagesEx-table_previous, #paginateEx_enabled_next,
+        #sections-table_previous, #sections-table_next,
+        #sectionPages-table_previous, #sectionPages-table_next {
+            margin-right: 6px;
+        }
+        
+        #pages-table, #pagesEx-table, #sections-table, #sectionPages-table {
+            width: 100%;
+        }
+        
+        #pages-table th, #pagesEx-table th, #sections-table th {
+            background: #F2F3F3;
+            padding: 3px 5px;
+        }
+        
+        #sectionPages-table th {
+            background: #F2F3F3;
+            padding: 3px 5px;
+        }
+        
+        #sectionPages-table_wrapper .ui-widget-header {
+            background: #D36D6B;
+        }
+        
+        .col-check {
+            width: 12px;
+        }
+        
+        .no-items {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .included-pages-table {
+            margin: 10px auto;
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 95%;
+        }
+        
+        .included-pages-table td{
+            border-bottom: 1px solid #E0E3E5;
+        }
+        
+        .included-sections-table {
+            margin: 10px auto;
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 95%;
+        }
+        
+        .included-sections-table .row{
+            border-bottom: 1px solid #E0E3E5;
+        }
+        
+        .included-pageSections-table {
+            margin: 0px auto;
+            cellspacing: 0px;
+            width: 90%;
+        }
+        
+        .img-loading {
+            width: 12px;
+            vertical-aling: middle;
+        }
+        
+        .separator {
+            color: #015BA7;
+        }
+        
+    </style>
+    
+    <script>
+        var j$ = jQuery.noConflict();
+    
+        j$(document).ready(function() {
+            initPagesTable();
+            initCheckAll();
+        });
+        
+        function initPagesTable() {
+            j$('#pages-table').dataTable({
+                "aoColumns": [
+                    { "bSortable": false },
+                    { "bSortable": true },
+                    { "bSortable": true },
+                    { "bSortable": true }
+                ],
+                "sDom": '<"H"<"toolbar">lfr>t<"F"ip>',
+                "oLanguage": {
+                    "sUrl": "{!URLFOR($Resource.jquery,'dataTableIta.txt')}"
+                },
+                "iDisplayLength": 50,
+                "bStateSave": true
+            });     
+        }
+    
+        function initCheckAll() {
+            j$('#check-all').bind('click', function () {
+                j$(this).closest('.pages-table').find(':checkbox').prop('checked', this.checked);
+            });
+        }
+    </script>
+     
+    <apex:form >
+        <apex:outputPanel id="poller">
+            <apex:actionPoller action="{!syncDfp.getJobStatus}" rerender="poller" interval="5" rendered="{!syncDfp.jobIsRunning}"/>
+            <c:Loading backColor="#FFFFFF" borderColor="#FFFFFF" borderSize="0" height="50px" width="280px" imageUrl="/img/loading32.gif" message="Creazione impressions stimate Stato: {!syncDfp.aaj.Status}" messageStyle="color:darkred;font-size:11pt;font-weight:bold;" rendered="{!syncDfp.jobIsRunning}"/>
+        </apex:outputPanel>
+        <apex:sectionHeader title="Ad Units DFP" subtitle="Assegna Canale Primario"/>
+        <apex:pageBlock >
+            <apex:outputPanel layout="block" styleClass="box">
+                <div class="box-header">
+                    <span class="box-header-title">
+                        <apex:commandButton value="Assegna a:" action="{!assignCanalePrimario}" status="assignStatus" rerender="excluded-pages, poller" oncomplete="initPagesTable();initCheckAll();"/>
+                    </span>
+                    <apex:selectList value="{!canaliPrimariSelected}" multiselect="true"  size="5" required="true">
+                        <apex:selectOptions value="{!CanaliPrimari}"/>
+                    </apex:selectList>
+
+                    <apex:actionStatus id="assignStatus">
+                        <apex:facet name="start">
+                            <c:Loading BackColor="#FFFFFF" borderColor="#FFFFFF" borderSize="0" height="50px" width="120px" ImageUrl="/img/loading32.gif" Message="Aggiornamento..." messageStyle="color:darkred;font-size:11pt;font-weight:bold;"/>
+                        </apex:facet>
+                    </apex:actionStatus>
+                </div>
+                <apex:outputPanel id="excluded-pages" layout="block" styleClass="box-body">
+                    <table id="pages-table" class="pages-table">
+                        <thead>
+                            <tr>
+                                <th class="col-check">
+                                    <input type="checkbox" id="check-all" name="check-all" />
+                                </th>
+                                <th>Path</th>
+                                <th>Livello</th>
+                                <th>Canale Primario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <apex:repeat value="{!adUnitDfpList1}" var="au">
+                                <tr>
+                                    <td style="text-align:center;"><apex:inputCheckbox value="{!au.checked}"/></td>
+                                    <td>{!au.adUnit.Path__c}</td>
+                                    <td style="text-align:center;">{!au.adUnit.Level__c}</td>
+                                    <td>{!au.adUnit.CanalePrimario__c}</td>
+                                    
+                                </tr>
+                            </apex:repeat>
+                            <apex:repeat value="{!adUnitDfpList2}" var="au">
+                                <tr>
+                                    <td style="text-align:center;"><apex:inputCheckbox value="{!au.checked}"/></td>
+                                    <td>{!au.adUnit.Path__c}</td>
+                                    <td style="text-align:center;">{!au.adUnit.Level__c}</td>
+                                    <td>{!au.adUnit.CanalePrimario__c}</td>
+                                </tr>
+                            </apex:repeat>
+                            <apex:repeat value="{!adUnitDfpList3}" var="au">
+                                <tr>
+                                    <td style="text-align:center;"><apex:inputCheckbox value="{!au.checked}"/></td>
+                                    <td>{!au.adUnit.Path__c}</td>
+                                    <td style="text-align:center;">{!au.adUnit.Level__c}</td>
+                                    <td>{!au.adUnit.CanalePrimario__c}</td>
+                                </tr>
+                            </apex:repeat>
+                            <apex:repeat value="{!adUnitDfpList4}" var="au">
+                                <tr>
+                                    <td style="text-align:center;"><apex:inputCheckbox value="{!au.checked}"/></td>
+                                    <td>{!au.adUnit.Path__c}</td>
+                                    <td style="text-align:center;">{!au.adUnit.Level__c}</td>
+                                    <td>{!au.adUnit.CanalePrimario__c}</td>
+                                </tr>
+                            </apex:repeat>
+                        </tbody>
+                    </table>
+                </apex:outputPanel>
+            </apex:outputPanel>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

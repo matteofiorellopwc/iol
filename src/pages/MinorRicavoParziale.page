@@ -1,0 +1,163 @@
+<apex:page standardController="LineItem__c" extensions="ExtensionMinorRicavoParziale" showHeader="true" sidebar="false" cache="false" tabStyle="Opportunity">
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/> 
+    <style>
+        .picklistTime{  width: 50px; }
+        .activeTab { background-color: #236FBD; color:white; background-image:none }
+        .inactiveTab { background-color: lightgrey; color:black; background-image:none}
+        .dateFormat {display:none;}
+        
+        table.multiSelectPicklistTable select{
+            width: 190px;
+            height: 160px;
+        }
+        
+        /*** Page-block Facet Header ***/ 
+        .facetHeaderTitle {
+            width: 300px;
+            text-align: center; 
+        }
+        
+        .facetHeaderTitle img{
+            margin-right: 10px; 
+            vertical-align: middle;
+            position: relative;
+            bottom: 3px;
+        }
+
+        td.valoreRipianificabile {
+            color: red;
+            font-weight: bold;
+        }
+
+        #confronto .bPageBlock .detailList .labelCol {
+            width: 48%;
+        }
+    </style>
+
+    <script> 
+        function deleteRicaviCustom(idCol){
+            if(!confirm('Sicuro?')){
+                return false;
+            }
+            idCol = idCol.replace(':col','');
+            rowNum = idCol.substr(idCol.lastIndexOf(":")+1);
+
+            showLoadingRicavo();
+            deleteRicaviCustomJs(rowNum);
+        }
+
+        function showLoadingRicavo(){
+            jQuery('#loadingRicavo').show();
+        }
+
+
+    </script>   
+    
+    <apex:sectionHeader subtitle="Minor Ricavo Parziale"/>
+    <apex:form >
+        <apex:variable value="{! LineItem__c.RimozioneParteNonErogata__c && isLineItemSospeso && LineItem__c.Opportunity__r.StageName == 'Chiusa Vinta – in modifica'}" var="consentiRimozioneParziale" />
+        <apex:pageMessages escape="false" />
+        <apex:pageBlock id="pageBlock">
+            <apex:facet name="header">
+                <apex:panelGrid columns="1" columnClasses="facetHeaderTitle">
+                    <apex:panelGroup >
+                        <apex:commandButton action="{!goBack}" value="Torna al Line Item" />
+                        <apex:commandButton action="{!bloccaLineItemMinorRicavo}" onclick="if(!confirm('Attenzione: se si procede questo line item non sarà più modificabile e se sincronizzato con l\'Ad Server verrà anche sospesa l\'erogazione')){return false;}" value="Blocca Line Item per Minor Ricavo" rendered="{! NOT(consentiRimozioneParziale) }" />
+                    </apex:panelGroup>    
+                </apex:panelGrid>
+            </apex:facet>
+            <apex:pageBlockSection columns="2" >
+                <apex:outputField value="{!LineItem__c.Name_Dfp__c}" label="Line Item"/>
+                <br/>
+                <apex:outputField value="{!LineItem__c.Start_Date__c}" />
+                <apex:outputField value="{!LineItem__c.End_Date__c}" />
+                <apex:outputField value="{!LineItem__c.Prezzo_net_net__c}"/>
+                <br/>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+        <div>
+            <div style="float:left;width:48%;" id="confronto">
+                <apex:pageBlock >
+                    <apex:pageBlockSection columns="1" collapsible="false" title="Confronto venduto erogato">
+                        <apex:outputField value="{!LineItem__c.Totale__c}" label="Totale venduto" />
+                        <apex:outputField value="{!LineItem__c.Totale_erogato__c}" />
+                        <apex:outputField value="{!LineItem__c.totaleRipianificabile__c}" />
+                        <apex:outputField value="{!LineItem__c.Totale_ripianificato_positivo__c}" />
+                        <apex:pageBlockSectionItem dataStyleClass="valoreRipianificabile">
+                            <apex:outputLabel >
+                                {!$ObjectType.LineItem__c.fields.ValoreRipianificabile__c.label}
+                            </apex:outputLabel>
+                            <apex:outputField value="{!LineItem__c.ValoreRipianificabile__c}"/>
+                        </apex:pageBlockSectionItem>
+                    </apex:pageBlockSection>
+                    <div style="width:300px;">
+                        <apex:pageMessage rendered="{!consentiRimozioneParziale}" title="" severity="info" detail="Il totale sarà calcolato al salvataggio" />                        
+                    </div>                
+                </apex:pageBlock>
+            </div>
+            <apex:outputPanel id="ricavi" rendered="{!consentiRimozioneParziale}" layout="block" style="padding-left:20px;width:48%;float:left;">  
+                <apex:pageBlock >
+                    <apex:actionFunction name="deleteRicaviCustomJs" action="{!deleteRicaviCustom}" reRender="ricavi" >
+                        <apex:param name="indexRicavoToDelete" assignTo="{!indexRicavoToDelete}" value=""/>
+                    </apex:actionFunction>
+                    <apex:pageBlockSection columns="1" title="Ricavi" collapsible="false" >
+                        <apex:outputText rendered="{!ricaviPositivi.size > 0}">
+                            <apex:pageBlockTable value="{!ricaviPositivi}" var="ricavoPositivo" style="width:350px;" >
+                                <apex:facet name="header">
+                                    Ricavi positivi
+                                </apex:facet>  
+                                <apex:column headerValue="Mese" width="90px" value="{!ricavoPositivo.Mese__c}" />
+                                <apex:column headerValue="Anno" width="80px" value="{!ricavoPositivo.Anno__c}" />
+                                <apex:column headerValue="Valore" value="{!ricavoPositivo.Valore__c}" />
+                            </apex:pageBlockTable>
+                        </apex:outputText>
+                        <br />
+
+                        <apex:outputText >
+                            <apex:panelGroup >
+                                <apex:commandButton value="Aggiungi minor ricavo" action="{!addRicaviCustom}" reRender="ricavi" onclick="showLoadingRicavo();" />
+                                <apex:commandButton action="{!customSave}" value="Salva minor ricavi" rendered="{!consentiRimozioneParziale}" onclick="showLoadingRicavo();" />
+                            </apex:panelGroup>
+                            <img id="loadingRicavo" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                        
+                            <apex:pageBlockTable value="{!ricaviNegativi}" var="ricavoNegativo" style="width:480px;" >
+                                <apex:facet name="header">
+                                    Minor ricavi
+                                </apex:facet>  
+                                <apex:column id="col" width="35px">
+                                    <apex:outputPanel rendered="{!ISBLANK(ricavoNegativo.Id)}">
+                                        <a style="cursor:pointer;" onclick="deleteRicaviCustom('{!$Component.col}')">elimina</a>
+                                    </apex:outputPanel>
+                                </apex:column>
+                                <apex:column headerValue="Mese" width="90px">
+                                    <apex:outputField rendered="{! NOT(ISBLANK(ricavoNegativo.Data_primo_mese__c)) && ricavoNegativo.Data_primo_mese__c <= dataChiusuraRicavi }" value="{!ricavoNegativo.Mese__c}"/>
+                                    <apex:inputField rendered="{! ISBLANK(ricavoNegativo.Data_primo_mese__c) || ricavoNegativo.Data_primo_mese__c > dataChiusuraRicavi }"  value="{!ricavoNegativo.Mese__c}"/>
+                                </apex:column>
+                                <apex:column headerValue="Anno" width="80px">
+                                    <apex:outputField rendered="{! NOT(ISBLANK(ricavoNegativo.Data_primo_mese__c)) && ricavoNegativo.Data_primo_mese__c <= dataChiusuraRicavi }" value="{!ricavoNegativo.Anno__c}"/>
+                                    <apex:inputField rendered="{! ISBLANK(ricavoNegativo.Data_primo_mese__c) || ricavoNegativo.Data_primo_mese__c > dataChiusuraRicavi }" value="{!ricavoNegativo.Anno__c}"/>
+                                </apex:column>
+                                <apex:column headerValue="Valore" id="colVal" width="300px" > 
+                                    <apex:outputField rendered="{! NOT(ISBLANK(ricavoNegativo.Data_primo_mese__c)) && ricavoNegativo.Data_primo_mese__c <= dataChiusuraRicavi }" value="{!ricavoNegativo.Valore__c}"/>
+                                    <apex:inputField rendered="{! ISBLANK(ricavoNegativo.Data_primo_mese__c) || ricavoNegativo.Data_primo_mese__c > dataChiusuraRicavi }" value="{!ricavoNegativo.Valore__c}"/>
+                                </apex:column>
+                            </apex:pageBlockTable>
+                        </apex:outputText>
+                    </apex:pageBlockSection>
+                </apex:pageBlock>
+            </apex:outputPanel>
+            <!-- SEZIONE RICAVI -->
+        </div>
+    </apex:form>
+
+    <apex:outputText rendered="false" >
+        {!LineItem__c.Opportunity__r.DataPrimaChiusaVinta__c}
+        {!LineItem__c.Opportunity__r.StageName}
+        {!LineItem__c.Opportunity__r.Local__c}
+        {!LineItem__c.Status__c}
+        {!LineItem__c.Status_oas__c}
+        {!LineItem__c.Id_DFP__c}
+        {!LineItem__c.Id_oas__c}
+    </apex:outputText>
+
+</apex:page>

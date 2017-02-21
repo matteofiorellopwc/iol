@@ -1,0 +1,144 @@
+<apex:page standardController="Opportunity" extensions="ExtensionAddProduct" title="">
+    <style>
+    .add-button {
+        background: url("/img/feeds/follow_sprite.png") no-repeat scroll 0 0 transparent;
+        height: 16px;
+        vertical-align: text-top;
+        width: 16px;
+        float: right;
+    }
+        
+    .col-action {
+        padding-right: 18px !important;
+        width: 32px;
+    }
+    
+    .detailList {
+        table-layout: fixed;
+    }
+    
+    .field {
+        width: 150px;
+    }
+    </style>
+    
+    <apex:sectionHeader title="Cerca e seleziona un prodotto" subtitle="Aggiungi prodotto"/>
+    <apex:outputText rendered="{!Opportunity.In_approvazione__c}" >
+        <apex:pageMessage title="Attenzione!" rendered="{!Opportunity.isclosed}" detail="Campagna chiusa, non è possibile aggiungere altri prodotti!" severity="warning" strength="2" />
+        <apex:pageMessage title="Attenzione!" rendered="{!Opportunity.In_approvazione__c}" detail="Campagna in approvazione, non è possibile aggiungere altri prodotti!" severity="warning" strength="2" />        
+        <a href="/{!opportunity.id}">indietro</a>
+    </apex:outputText>
+    <apex:pageMessage title="Attenzione!" rendered="{!parentLineItem != null}" severity="warning" strength="2" >
+    	E' in corso la ripianificazione del Line Item: <br/><apex:outputField value="{!parentLineItemObj.Nome_DFP__c}" /> <br/> Scegliere un prodotto per procedere.
+    </apex:pageMessage>
+    <apex:outputText rendered="{!NOT(Opportunity.In_approvazione__c)}" >
+        <apex:pageMessages ></apex:pageMessages>
+    
+        <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+        <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+        <apex:form >
+            <apex:pageBlock >
+                <apex:pageBlockSection columns="3">
+                     <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.name.label}</apex:outputLabel>
+                        <apex:inputText value="{!prodname}" styleClass="field"/>
+                    </apex:pageBlockSectionItem>
+                    <!--
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.family.label}</apex:outputLabel>
+                        <apex:selectList value="{!family}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!famiglie}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    -->
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.Portale__c.label}</apex:outputLabel>
+                        <apex:selectList value="{!portal}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!portals}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    <!--
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.Size__c.label}</apex:outputLabel>
+                        <apex:selectList value="{!size}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!sizes}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    -->
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.Canale_Primario__c.label}</apex:outputLabel>
+                        <apex:selectList value="{!primaryChannel}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!primaryChannels}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.CanalePrimario__c.label}</apex:outputLabel>
+                        <apex:selectList value="{!newPrimaryChannel}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!newPrimaryChannels}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    <!--
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.Ad_Server__c.label}</apex:outputLabel>
+                        <apex:selectList value="{!adServer}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!adServers}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    -->
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.Delivery_Model__c.label}</apex:outputLabel>
+                        <apex:selectList value="{!deliveryModel}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!deliveryModels}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    <!--
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.Product2.fields.Type__c.label}</apex:outputLabel>
+                        <apex:selectList value="{!type}" size="1" styleClass="field">
+                            <apex:selectOptions value="{!types}" />
+                        </apex:selectList>
+                    </apex:pageBlockSectionItem>
+                    -->
+                    
+                    <apex:pageBlockSectionItem rendered="{!Opportunity.Profili_prodotto_network__c}">
+                        <apex:outputLabel >Mostra anche prodotti network</apex:outputLabel>
+                        <apex:inputCheckbox value="{!showNetworkProduct}"/>
+                    </apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem rendered="{!Opportunity.Profili_prodotto_local__c}">
+                        <apex:outputLabel >Mostra solo prodotti local</apex:outputLabel>
+                        <apex:inputCheckbox value="{!showLocalProduct}"/>
+                    </apex:pageBlockSectionItem>                            
+                </apex:pageBlockSection>    
+                <apex:pageBlockButtons location="bottom">
+                    <apex:commandButton action="{!search}" value="Cerca" /> <!-- reRender="prodottitable" -->
+                    <apex:commandButton action="{!cancel}" value="Annulla" />
+                </apex:pageBlockButtons>
+
+            </apex:pageBlock>
+            <!--
+            onclick="if('{!p.Inventory_Target__r.size}{!p.PlacementTargeting__r.size}{!p.SectionsOasTargeted__r.size}' == '000' && '{!p.family}' == 'Banner') {alert('Nessun inventory target definito per questo prodotto');return false;}" 
+            -->
+            <apex:pageBlock id="prodottitable" rendered="{!products.size > 0}">
+                <apex:pageBlockTable value="{!products}" var="p">
+                    <apex:column styleClass="col-action">
+                        <apex:facet name="header">Aggiungi</apex:facet>
+                        <apex:commandLink action="{!checkCpd}">
+                            <apex:image value="/s.gif" styleClass="add-button"/>
+                            <apex:param name="prodId" value="{!p.id}" assignTo="{!prodId}" />
+                        </apex:commandLink>
+                    </apex:column>
+                    <apex:column value="{!p.Type__c}"/>                    
+                    <apex:column value="{!p.name}"/>
+                    <apex:column value="{!p.Portale__c}"/>
+                    <apex:column value="{!p.Ad_Server__c}"/>
+                    <apex:column value="{!p.Canale_Primario__c}"/>
+                    <apex:column value="{!p.CanalePrimario__c}"/>
+                    <apex:column value="{!p.family}"/>
+                    <apex:column value="{!p.Size__c}"/>
+                    <apex:column value="{!p.Delivery_Model__c}"/>
+                    <apex:column value="{!p.Categoria_libero__c}"/>
+                </apex:pageBlockTable>
+            </apex:pageBlock>
+        </apex:form>
+    </apex:outputText>        
+</apex:page>

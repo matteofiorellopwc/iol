@@ -1,0 +1,152 @@
+<apex:component >
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <apex:attribute name="readOnly" type="boolean" default="false" description=""/>
+    <apex:attribute name="ControllerRicavi" type="ControllerRicavi" description="istanza di ControllerRicavi" />
+    <apex:attribute name="parentObj" type="sobject" description="Line item"/>
+    <apex:attribute name="canDelete" type="boolean" default="false" description=""/>
+
+    <apex:outputPanel id="ricavi">  
+        <apex:variable value="{!OR(ControllerRicavi.li.ProductFamily__c = 'Search',ControllerRicavi.li.ProductFamily__c = 'Placeholder')}" var="isSearchOrPlaceholder"/>
+        
+        <apex:actionFunction name="deleteRicaviCustomJs" action="{!ControllerRicavi.deleteRicaviCustom}" reRender="ricavi" >
+            <apex:param name="indexRicavoToDelete" assignTo="{!ControllerRicavi.indexRicavoToDelete}" value=""/>
+        </apex:actionFunction>
+        <apex:actionFunction name="applicaDifferenzaJs" action="{!ControllerRicavi.applicaDifferenza}" reRender="ricavi" >
+            <apex:param name="indexApplicaDifferenza" assignTo="{!ControllerRicavi.indexApplicaDifferenza}" value=""/>
+            <apex:param name="updatedRicavo" value=""/>
+        </apex:actionFunction> 
+        <apex:actionFunction name="rerenderPageBlock" rerender="pageBlock"/>
+        <script> 
+            function deleteRicaviCustom(idCol){
+                if(!confirm('Sicuro?')){
+                    return false;
+                }
+                idCol = idCol.replace(':col','');
+                rowNum = idCol.substr(idCol.lastIndexOf(":")+1);
+
+                showLoadingRicavo();
+                deleteRicaviCustomJs(rowNum);
+            }
+            function applicaDifferenza(idCol,updatedRicavo){
+                idCol = idCol.replace(':colVal','');
+                rowNum = idCol.substr(idCol.lastIndexOf(":")+1);
+
+                showLoadingRicavo();
+                applicaDifferenzaJs(rowNum,updatedRicavo);
+            }
+        </script>
+        <apex:pageBlockSection title="Ricavi" columns="1" >
+            <apex:pageMessage strength="2" title="Attenzione" rendered="{!ControllerRicavi.ripianificazioneLineItem}" detail="I ricavi saranno calcolati al salvataggio del Line Item" severity="info" />
+            <apex:pageMessage strength="2" title="Attenzione" rendered="{!ControllerRicavi.ricaviPersonalizzati && NOT(ControllerRicavi.ripianificazioneLineItem)}" detail="I ricavi sono stati personalizzati, non verranno aggiornati automaticamente al salvataggio" severity="warning" />
+            <apex:pageMessage strength="2" title="Attenzione" rendered="{!NOT(ControllerRicavi.ricaviPersonalizzati)  && NOT(ControllerRicavi.ripianificazioneLineItem)}" detail="Se non personalizzati, i ricavi saranno aggiornati automaticamente al salvataggio." severity="info" />
+            
+            <apex:pageBlockSectionItem >
+                <apex:outputText >
+                    <script>
+                        function updateRicavi(updatedRicavo){
+                            showLoadingRicavo();
+                            updateRicavijs(updatedRicavo);
+                        }
+                        
+                        function showLoadingRicavo(){
+                            j$('#loadingRicavo').show();
+                        }
+                    </script>
+                    <apex:actionFunction name="updateRicavijs" action="{!ControllerRicavi.checkTotaliAndUpdateRicavi}" reRender="pageBlock" >
+                        <apex:param name="updatedRicavo" value=""/>
+                    </apex:actionFunction>
+                </apex:outputText>
+                <apex:outputText rendered="{!NOT(readOnly) && CONTAINS(ControllerRicavi.li.Opportunity__r.Profili_conferma_e_gestione_post_conferm__c,'_'&$Profile.Name&'_')}" >
+                    <apex:commandButton value="Crea da date" onclick="if('{!ControllerRicavi.ricavi.size}' != '0'){if(!confirm('Le modifiche verranno eliminate!')){return false;}}showLoadingRicavo();" action="{!ControllerRicavi.creaRicaviDaDate}" reRender="pageBlock"  />
+                    <apex:commandButton value="Aggiungi riga personalizzata" action="{!ControllerRicavi.addRicaviCustom}" reRender="ricavi" onclick="showLoadingRicavo();" rendered="{!ControllerRicavi.ricavi.size > 0}" />
+                    <img id="loadingRicavo" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem rendered="{!NOT(readOnly)}" >
+                <apex:outputLabel value="{!$ObjectType.LineItem__c.fields.ModalitaEditRicavo__c.label}" />
+                <apex:selectRadio layout="pageDirection" value="{!parentObj['ModalitaEditRicavo__c']}" onchange="showLoadingRicavo();rerenderPageBlock();" >
+                    <apex:selectOptions value="{!ControllerRicavi.modalitaOption}" />
+                </apex:selectRadio>
+            </apex:pageBlockSectionItem>    
+            <apex:outputText rendered="{!ControllerRicavi.ricavi.size > 0}">
+                <apex:pageBlockTable value="{!ControllerRicavi.ricavi}" var="ra" style="width:600px;" >
+                    <apex:facet name="header">
+                        Ricavi positivi
+                    </apex:facet>                   
+                    <apex:column id="col" width="35px">
+                        <apex:outputPanel rendered="{!AND(ra.Custom__c,canDelete)}">
+                            <a style="cursor:pointer;" onclick="deleteRicaviCustom('{!$Component.col}')">delete</a>
+                        </apex:outputPanel>
+                    </apex:column>
+                    <apex:column headerValue="Mese" width="90px">
+                        <apex:outputField rendered="{!OR(NOT(ra.Custom__c),readOnly)}" value="{!ra.Mese__c}"/>
+                        <apex:inputField styleClass="readonlyForPack" rendered="{!AND(ra.Custom__c,not(readOnly))}" value="{!ra.Mese__c}"/>                
+                    </apex:column>
+                    <apex:column headerValue="Anno" width="80px">
+                        <apex:outputField rendered="{!OR(NOT(ra.Custom__c),readOnly)}" value="{!ra.Anno__c}" />
+                        <apex:inputField style="width:70px;" styleClass="readonlyForPack" rendered="{!AND(ra.Custom__c,not(readOnly))}" value="{!ra.Anno__c}" />                
+                    </apex:column>
+                    <apex:column headerValue="Percentuale applicata" width="120px">
+                        <!--
+                            Inserisco percentuale se:
+                                - modalità edit ricavo = percentuale
+                                - mese non è totale
+                                - non ho fatturato nessuna ricavo di quel line item
+                        -->
+                        <apex:inputField styleClass="readonlyForPack" style="width:70px;" value="{!ra.Percentuale_applicata__c}" rendered="{!AND(parentObj['ModalitaEditRicavo__c'] = 'Percentuale',ra.Mese__c <> 'Totale',not(readOnly))}" onchange="updateRicavi({!ra.Order__c});" />
+                        <apex:outputPanel style="{!IF(AND(ra.Percentuale_applicata__c <> 100,ra.Mese__c = 'Totale'),'color:red;','')}{!IF(AND(ra.Percentuale_applicata__c = 100,ra.Mese__c = 'Totale'),'color:green;','')}" 
+                            rendered="{!OR(ra.Mese__c = 'Totale',parentObj['ModalitaEditRicavo__c'] <> 'Percentuale',readOnly)}">
+                            <apex:outputField value="{!ra.Percentuale_applicata__c}" />
+                        </apex:outputPanel>
+                    </apex:column> 
+                    <!--
+                        Inserisco valore se:
+                            (
+                             modalità edit ricavo = valore
+                                 and 
+                             ho fatturato almeno una ricavo di quel line item
+                            )
+                            or (mese non è totale)
+                    -->                    
+                    <apex:column headerValue="Valore" id="colVal" > 
+                        <apex:outputPanel rendered="{!AND(parentObj['ModalitaEditRicavo__c'] = 'Valore',ra.Mese__c <> 'Totale',not(readOnly))}">
+                            <apex:inputField styleClass="readonlyForPack"  id="inputValore" value="{!ra.Valore__c}" onchange="updateRicavi({!ra.Order__c});" />
+                            <br />
+                            <apex:outputText rendered="{!AND(ControllerRicavi.totalDiffSumRicavi <> 0,NOT(ISBLANK(ControllerRicavi.totalDiffSumRicavi)))}">
+                                <a style="cursor:pointer;" onclick="applicaDifferenza('{!$Component.colVal}','{!ra.Order__c}'')">applica differenza con totale</a>
+                            </apex:outputText>
+                        </apex:outputPanel>
+                        <apex:outputPanel rendered="{!OR(parentObj['ModalitaEditRicavo__c'] <> 'Valore',ra.Mese__c = 'Totale',readOnly)}" style="{!IF(ra.Mese__c <> 'Totale','',IF(ra.Valore__c <> ControllerRicavi.li.Totale__c,'color:red;','color:green;'))}" >
+                            <apex:outputField value="{!ra.Valore__c}" />
+                            <apex:outputText rendered="{!AND(ra.Mese__c = 'Totale')}" >
+                                <apex:outputText rendered="{!ra.Valore__c <> ControllerRicavi.li.Totale__c}">
+                                    <br />(DIFFERENZA CON TOTALE&nbsp;<c:formatCurrency value="{!ABS(ra.Valore__c - ControllerRicavi.li.Totale__c)}" showDecimal="true" />)
+                                </apex:outputText>   
+                                <br />
+                            </apex:outputText>
+                        </apex:outputPanel>
+                    </apex:column>
+                </apex:pageBlockTable>
+            </apex:outputText>                            
+           <apex:outputText rendered="{!ControllerRicavi.minorRicavi.size > 0}">
+                <apex:pageBlockTable title="Minor Ricavi" value="{!ControllerRicavi.minorRicavi}" var="ra" style="width:600px;" >
+                    <apex:facet name="header">
+                        Minor ricavi
+                    </apex:facet>
+                    <apex:column width="35px" />
+                    <apex:column headerValue="Mese" width="90px" value="{!ra.Mese__c}" />
+                    <apex:column headerValue="Anno" width="80px" value="{!ra.Anno__c}" />
+                    <apex:column headerValue="Percentuale applicata" width="120px" value="{!ra.Percentuale_applicata__c}" />
+                    <apex:column headerValue="Valore" value="{!ra.Valore__c}" />
+                    <apex:column width="90px" value="{!ra.LineItemDiRipianificazione__c}" /> 
+                </apex:pageBlockTable>
+                <div style="width:598px;border:1px solid red;background-color:white;height: 22px;margin-top: 5px;font-weight: bold;">
+                    <div style="width:35px;float:left;padding: 4px 2px 4px 5px;">&nbsp;</div>
+                    <div style="width:305px;float:left;padding: 4px 2px 4px 5px;">Totale Ricavi</div>
+                    <div style="width:90px;float:left;padding: 4px 2px 4px 5px;"><apex:outputField value="{!ControllerRicavi.li.Totale_Ricavi__c}" /></div>
+                    <div style="width:90px;float:left;padding: 4px 2px 4px 5px;">&nbsp;</div>
+                </div>                      
+            </apex:outputText>             
+        </apex:pageBlockSection>
+    </apex:outputPanel>           
+</apex:component>

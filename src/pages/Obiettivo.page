@@ -1,0 +1,40 @@
+<apex:page > <!-- standardController="Revenue_application__c" extensions="ControllerObiettivi"
+    <apex:form >
+        <apex:pageMessages ></apex:pageMessages>
+        <apex:pageBlock id="pageBlock" >
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Salva" action="{!customSave}" />
+                <apex:commandButton immediate="true" value="Annulla" action="{!customCancel}" />                
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection columns="1">
+                <apex:outputField value="{!Revenue_application__c.Obiettivo__c}" />            
+                <apex:inputField required="true" value="{!Revenue_application__c.Anno__c}" />            
+                <apex:inputField required="true" value="{!Revenue_application__c.Mese__c}" />                
+                <apex:inputField required="true" value="{!Revenue_application__c.Valore__c}" />
+            </apex:pageBlockSection>
+            <apex:pageBlockSection >
+                <apex:inputField required="true" value="{!Revenue_application__c.Tipo_obiettivo__c}" onchange="rerenderValue();" />
+            </apex:pageBlockSection>
+            <apex:actionFunction name="rerenderValue" rerender="pageBlock"/>
+            <apex:variable value="{!SUBSTITUTE(Revenue_application__c.Tipo_obiettivo__c,' ','_')&'_obiettivo__c'}" var="field"/>
+            <apex:pageBlockSection >
+                <apex:inputField rendered="{!field = 'Venditore_obiettivo__c'}" value="{!Revenue_application__c.Venditore_obiettivo__c}" />
+                <apex:inputField rendered="{!field = 'Centro_Media_obiettivo__c'}" value="{!Revenue_application__c.Centro_Media_obiettivo__c}" />
+                <apex:inputField rendered="{!field = 'Agenzia_territoriale_obiettivo__c'}" value="{!Revenue_application__c.Agenzia_territoriale_obiettivo__c}" />
+                <apex:inputField rendered="{!field = 'Canale_di_vendita_obiettivo__c'}" value="{!Revenue_application__c.Canale_di_vendita_obiettivo__c}" />
+                <apex:selectList size="1" rendered="{!field = 'Categoria_Libero_obiettivo__c'}" value="{!Revenue_application__c.Categoria_Libero_obiettivo__c}">
+                    <apex:selectOptions value="{!categorie}" />
+                </apex:selectList>                
+                <apex:selectList size="1" rendered="{!field = 'Market_obiettivo__c'}" value="{!Revenue_application__c.Market_obiettivo__c}">
+                    <apex:selectOptions value="{!settori}" />
+                </apex:selectList>                
+                <apex:inputField rendered="{!field = 'Sotto_Classe_obiettivo__c'}" value="{!Revenue_application__c.Sotto_Classe_obiettivo__c}"/>
+                <apex:inputField rendered="{!field = 'Cliente_obiettivo__c'}" value="{!Revenue_application__c.Cliente_obiettivo__c}"/>
+                <apex:inputField rendered="{!field = 'Forecast_Classe_Prodotto_obiettivo__c'}" value="{!Revenue_application__c.Forecast_Classe_Prodotto_obiettivo__c}"/>
+                
+                
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:form>
+-->
+</apex:page>

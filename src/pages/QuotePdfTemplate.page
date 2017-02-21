@@ -1,0 +1,28 @@
+<apex:page standardController="Quote" extensions="ExtensionsQuoteTemplate" sidebar="false">
+<apex:variable value="{!AND(Quote.Opportunity.Approvazione_richiesta__c > 0,NOT(Quote.Opportunity.Approvata_commercialmente__c))}" var="notApproved"/>
+<script>
+function checkApprovazione(){
+    if({!notApproved}){
+        //alert('Non si possono salvare le offerte di opportunità non approvate');
+        //return false;
+        return true;
+    }
+}
+</script>
+
+<apex:form >
+    <apex:pageBlock >
+        <apex:pageBlockButtons >
+            <apex:commandButton value="Cancel" action="{!cancel}" />        
+            <apex:commandButton onclick="return checkApprovazione();" value="Save Pdf" action="{!savePdf}"/>
+        </apex:pageBlockButtons>
+        <div style="text-align:center;">
+            <iframe src="/apex/QuotePDFLibero?id={!Quote.id}"  height="770px" width="1000px" frameborder="0" />
+        </div>
+    </apex:pageBlock>
+</apex:form>
+    
+
+    
+
+</apex:page>

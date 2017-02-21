@@ -1,0 +1,46 @@
+<apex:page title="Reports Daily Commissionato Vs. Ricavi">
+    <style>
+        .conf-prod-grid {
+            font-size: 1.2em;
+            border-spacing: 5px;
+        }
+    </style>
+    <apex:sectionHeader title="Reports Daily" subtitle="Commissionato Vs Ricavi"/>
+    <apex:pageBlock >
+        <apex:panelGrid columns="1" styleClass="conf-prod-grid">
+            <div style="font-size: 18px; font-weight: bold;">DIRETTA</div>
+            <apex:panelGroup >
+                1.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppCreateDIR" target="_blank">Opportunità Create</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                2.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppCreateVinteDIR" target="_blank">Opportunità Create/Vinte</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                3.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppVinteDIR" target="_blank">Opportunità Vinte</apex:outputLink>
+            </apex:panelGroup>
+            <BR></BR>
+            <div style="font-size: 18px; font-weight: bold;">CENTRI MEDIA</div>
+            <apex:panelGroup >
+                1.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppCreateCM" target="_blank">Opportunità Create</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                2.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppCreateVinteCM" target="_blank">Opportunità Create/Vinte</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                3.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppVinteCM" target="_blank">Opportunità Vinte</apex:outputLink>
+            </apex:panelGroup>
+            <BR></BR>
+            <div style="font-size: 18px; font-weight: bold;">AGENZIE TERRITORIALI</div>
+            <apex:panelGroup >
+                1.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppCreateAGEX" target="_blank">Opportunità Create</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                2.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppCreateVinteAGEX" target="_blank">Opportunità Create/Vinte</apex:outputLink>
+            </apex:panelGroup>
+            <apex:panelGroup >
+                3.&nbsp;<apex:outputLink value="/apex/ViewMultiReportOppVinteAGEX" target="_blank">Opportunità Vinte</apex:outputLink>
+            </apex:panelGroup>
+        </apex:panelGrid>
+    </apex:pageBlock>
+
+</apex:page>

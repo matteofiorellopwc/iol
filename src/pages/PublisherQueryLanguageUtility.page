@@ -1,0 +1,52 @@
+<apex:page controller="PublisherQueryLanguageUtility">
+<apex:pageMessages id="error"/>
+<apex:form >
+    <apex:pageBlock >
+        <apex:pageBlockButtons location="top">
+            <apex:commandButton value="Run query" action="{!runQuery}" rerender="idtable,error" onclick="document.getElementById('loading').style.display = '';"/>
+        </apex:pageBlockButtons>
+
+        <script>
+            function setQuery(t){
+                document.getElementById("{!$Component.pbs.queryItem.query}").value = "select * from "+t+" limit 1000 offset 0";
+            }    
+        </script>
+        <apex:pageBlockSection id="pbs">
+            <apex:pageBlockSectionItem id="queryItem">
+                Query
+                <apex:inputTextArea style="width:300px;height:80px;" id="query" value="{!query}"/>
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <a onclick="setQuery(this.innerHTML)">Bandwidth_Group</a><br />
+                <a onclick="setQuery(this.innerHTML)">Browser</a><br />
+                <a onclick="setQuery(this.innerHTML)">Browser_Language</a><br />
+                <a onclick="setQuery(this.innerHTML)">Device_Manufacturer</a><br />
+                <a onclick="setQuery(this.innerHTML)">Mobile_Carrier</a><br />
+                <a onclick="setQuery(this.innerHTML)">Mobile_Device</a><br />
+                <a onclick="setQuery(this.innerHTML)">Mobile_Device_Submodel</a><br />
+                <a onclick="setQuery(this.innerHTML)">Operating_System</a><br />
+                <a onclick="setQuery(this.innerHTML)">Operating_System_Version</a><br />
+                <a onclick="setQuery(this.innerHTML)">Third_Party_Company</a><br />
+            </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</apex:form>            
+        <apex:pageBlock id="idtable">
+            <img id="loading" src="/img/loading32.gif" style="width:20px;display:none;"/>
+            <apex:outputText rendered="{!ii != ''}">Numero di risultati: {!ii.size}</apex:outputText>
+            <table cellpadding="10">
+                <tr>
+                    <apex:repeat value="{!columnTypes}" var="ct">
+                        <th>{!ct}</th>
+                    </apex:repeat>        
+                </tr>
+                <apex:repeat value="{!ii}" var="i">
+                    <tr>
+                        <apex:repeat value="{!columnTypes}" var="ct">
+                            <td>{!table[ct][i].value}</td>
+                        </apex:repeat>                            
+                    </tr>                    
+                </apex:repeat>
+            </table>
+        </apex:pageBlock>
+</apex:page>

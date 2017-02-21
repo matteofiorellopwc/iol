@@ -1,0 +1,7 @@
+<apex:page standardController="Ticket_Fatturazione__c" extensions="ExtensionInviaTicketSelezionatiSap" action="{!sendTicket}">
+    <apex:pageMessages ></apex:pageMessages>
+    <apex:pageMessage severity="info" title="Invio effettuato" rendered="{!not(error)}" >
+        La richiesta di invio è stata presa in carico dal sistema.<br />
+    </apex:pageMessage>
+    Premere <a href="/{!Ticket_Fatturazione__c.id}">qui</a> per tornare alla pagina precedente
+</apex:page>

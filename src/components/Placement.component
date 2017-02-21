@@ -1,0 +1,124 @@
+<apex:component controller="ControllerPlacement" >
+  <apex:variable var="editMode" value="{!0 == 0}" />
+ <apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+ <apex:variable var="includeMode" value="{!$CurrentPage.parameters.includeMode == 'true'}" />
+ <apex:variable var="excludeMode" value="{!$CurrentPage.parameters.excludeMode == 'true'}" />
+
+ 
+
+<script>
+
+    
+    function addPlacement(id){
+            showLoading(id);
+            ControllerPlacement.addPlacement(
+            id,'{!$CurrentPage.parameters.id}','{!$CurrentPage.parameters.sobjectName}',
+            function(result){
+                window.location.href = window.location.href;
+            });
+    }
+    
+     function removePlacement(id){
+            showLoading(id);
+            ControllerPlacement.removePlacement(
+            id,'{!$CurrentPage.parameters.id}',
+            function(result){
+                window.location.href = window.location.href;
+            });
+    }
+
+    function showLoading(id){
+      document.getElementById('img'+id).style.display = '';
+    }
+    
+</script>
+
+<style>
+    table tr:nth-child(even) {
+        background: #FFFFFF;
+    }
+    table tr:nth-child(odd) {
+        background: #EEEEEE;
+    }
+    
+    .buttonlink{
+        display: block;
+        border-style: solid;
+        border-color: #bbb #888 #666 #aaa;
+        border-width: 2px 1px 1px 2px;
+        width: 55px;
+        height: 18px;
+        background: #eee;
+        color: #333;
+
+        text-align: center;
+        vertical-align: middle;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .buttonlink:hover{
+        border-color: #666 #aaa #bbb #888;
+        border-width: 2px 1px 1px 2px;
+        color: #000;
+    }
+</style>
+
+<apex:outputText >
+  <apex:form >
+    <div id="placementType" style="width:40%;float:left;">
+      <apex:pageBlock title="Placements" rendered="{!editMode && editable }" id="adUnitBlock">
+        <table>
+          <apex:repeat value="{!placements}" var="placement" id="theRepeat">
+            <apex:outputText rendered="{!OR(includeMap[placement.id],CONTAINS( SUBSTITUTE(placementsSizes[placement.id],';',','),',' + filterSize + ','))}">
+            <tr> 
+              <td>
+                <apex:image styleClass="iconStatus" rendered="{!includeMap[placement.id] && excludeMode}"  value="/img/permissions_confirm16.gif" title="Included" />
+              </td>          
+              <td style="width:240px;">   
+                <b><apex:outputText value="{!placement.Name}" rendered="{!includeMap[placement.id] && excludeMode}"/></b>
+                <apex:outputText value="{!placement.Name}" rendered="{!NOT(includeMap[placement.id]) && includeMode}"/>
+              </td> 
+              <td style="width:140px;">
+                  <b><apex:outputText value="Selected" rendered="{!includeMap[placement.id] && excludeMode}"/></b> 
+                  <apex:outputText value="Not Selected" rendered="{!NOT(includeMap[placement.id]) && includeMode}"/> 
+              </td>
+              <td style="width:75px;">
+                <apex:outputText rendered="{!NOT(includeMap[placement.id]) && includeMode}">
+                  <div class="buttonlink" style="cursor:pointer;float:left;" onclick="addPlacement('{!placement.id}')">Includi</div>
+                  <!--<div style="cursor:pointer;float:left;" onclick="addPlacement('{!placement.id}')">Include</div>-->
+                  <!--<apex:commandButton onclick="addPlacement('{!placement.id}')" value="Includi"/>-->
+                </apex:outputText>
+              </td>
+              <td style="width:75px;">
+                <apex:outputText rendered="{!includeMap[placement.id] && excludeMode}">
+                  <div class="buttonlink" style="cursor:pointer;float:left;" onclick="removePlacement('{!placement.id}')">Rimuovi</div>
+                  <!--<div style="cursor:pointer;float:left;" onclick="removePlacement('{!placement.id}')">Remove</div>-->
+                  <!--<apex:commandButton onclick="removePlacement('{!placement.id}')" value="Rimuovi"/>-->
+                </apex:outputText>
+              </td>
+              <td style="width:22px;">
+                <img id="img{!placement.id}" src="/img/loading32.gif" style="padding-left:3px;width:16px;display:none;"/>
+              </td>
+            </tr>
+            </apex:outputText>
+          </apex:repeat>
+        </table> 
+      </apex:pageBlock>
+      <apex:pageBlock title="Placements" rendered="{! NOT(editMode) || NOT(editable) }">        
+        <table>
+          <apex:repeat value="{!placements}" var="placement" id="theRepeat">
+            <apex:outputText rendered="{!includeMap[placement.id]}">
+              <tr>           
+                <td style="width:240px;">   
+                  {!placement.Name}
+                </td>
+              </tr>
+            </apex:outputText>
+          </apex:repeat>
+        </table> 
+      </apex:pageBlock>      
+    </div>
+  </apex:form>
+</apex:outputText>
+  
+</apex:component>

@@ -1,0 +1,18 @@
+<apex:component allowDML="true" >
+
+    <apex:attribute name="ControllerOptionalLineItem" type="ControllerOptionalLineItem" description="istanza di ControllerOptional" required="true"/>
+    <apex:attribute name="editMode" type="boolean" default="true" description="indica se info visibili in edit o in view" />
+
+    <apex:pageBlock >
+        <apex:pageBlockTable style="width:700px;" value="{!ControllerOptionalLineItem.optionals}" var="opt">
+            <apex:column >
+                <apex:inputCheckbox onchange="updatecalc('')" value="{!opt.checked}" disabled="{!NOT(editMode)}"/>
+            </apex:column>
+            <apex:column value="{!opt.o.Tipo__c}" />
+            <apex:column value="{!opt.o.Quantita__c}" />
+            <apex:column value="{!opt.o.incremento__c}" />
+            <apex:column value="{!opt.o.Incremento_calcolato_lineitem__c}" />
+        </apex:pageBlockTable>
+    </apex:pageBlock>
+
+</apex:component>

@@ -1,0 +1,184 @@
+<apex:component controller="ControllerCustomCriteria" allowDML="true" >
+<apex:variable var="editMode" value="{!$CurrentPage.parameters.editMode == 'true'}" />
+<apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+<apex:form >
+    <apex:pageBlock >
+        <apex:pageBlockButtons rendered="{!editable}" location="top">
+            <apex:outputText rendered="{!NOT(editMode)}">
+                <input type="button" value="Modifica" onclick="window.location.href = window.location.href + '&editmode=true&editable=true'" />
+            </apex:outputText>
+            <apex:commandButton rendered="{!editMode}" action="{!customSave}" value="Salva modifiche"/>
+               
+        </apex:pageBlockButtons>
+        <apex:outputPanel rendered="{!sobjectName == 'product__c'}">
+            <apex:pageBlockSection title="Lista chiavi editabili in LineItem" columns="1">
+                <apex:pageBlockSectionItem >
+                    Chiavi
+                    <apex:outputPanel >
+                        <apex:outputText rendered="{!ISBLANK(selectedEditableKeysCarrier.value) && NOT(editMode)}">
+                            Tutte le chiavi
+                        </apex:outputText>
+                        <apex:outputText rendered="{!NOT(ISBLANK(selectedEditableKeysCarrier.value)) || editMode}">
+                            <c:Multiselect value="{!selectedEditableKeysCarrier}" options="{!keysWithoutNone}" readonly="{!NOT(editMode)}"/>
+                        </apex:outputText>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>    
+        </apex:outputPanel>                 
+    </apex:pageBlock>
+
+
+    <apex:outputPanel style="float:left;width: 450px;" layout="block" id="table">
+            <apex:actionFunction name="deleteSetJs" action="{!deleteSet}" rerender="table" >
+                <apex:param name="indexSet" value="" assignTo="{!indexSet}" />
+            </apex:actionFunction>
+            <apex:actionFunction name="deleteCCJs" action="{!deleteCustomCriteria}" rerender="table" >
+                <apex:param name="indexSet" value="" assignTo="{!indexSet}" />
+                <apex:param name="indexCC" value="" assignTo="{!indexCC}" />
+            </apex:actionFunction>
+            <apex:actionFunction name="editCCJs" action="{!editCustomCriteria}" reRender="editPageBlock,table">
+                <apex:param name="indexSet" value="" assignTo="{!indexSet}" />
+                <apex:param name="indexCC" value="" assignTo="{!indexCC}" />
+            </apex:actionFunction>
+            <apex:actionFunction name="addCCJs" action="{!addCustomCriteria}" oncomplete="onChangeKey();" reRender="editPageBlock,table">
+                <apex:param name="indexSet" value="" assignTo="{!indexSet}" />
+            </apex:actionFunction>            
+
+        <apex:pageBlock >
+            <apex:outputPanel >        
+                <apex:commandLink value="aggiungi gruppo"  action="{!addSet}" reRender="table" rendered="{!editMode && showAction}" /> 
+                <br /><br />
+                <apex:variable value="{!0}" var="i" />  
+                <apex:repeat value="{!CustomCriteriaSets}" var="set">
+                    <!--
+                        Se un gruppo contiene una chiave che non è tra quelle editabili, non si può cancellare
+                    -->
+                    <apex:variable var="groupDeletable" value="{! 1 }" />
+                    <apex:repeat value="{!set.customCriterias}" var="cc">
+                        <apex:variable value="{! OR(AND(NOT(ISBLANK(cc.group__c)),CONTAINS(keysString,cc.Custom_Targeting_Key__c & cc.group__c)),AND(ISBLANK(cc.group__c),CONTAINS(keysString,cc.Custom_Targeting_Key__c&';'))) }" var="keyEditable" />
+                        <apex:variable var="groupDeletable" value="{! IF(NOT(keyEditable),0,groupDeletable) }" />
+                    </apex:repeat>
+
+                    <apex:pageBlockSection title="OR" collapsible="false" columns="1" > 
+                        <apex:outputText rendered="{!editMode && showAction}">
+                            <apex:outputText rendered="{!groupDeletable = 1}">
+                                <a onclick="deleteSetJs({!i})" style="cursor:pointer;">elimina gruppo</a> &nbsp;|&nbsp;
+                            </apex:outputText>
+                            <a onclick="addCCJs({!i})" style="cursor:pointer;">aggiungi profilo</a>
+                        </apex:outputText>
+                        <apex:outputPanel layout="block"  style="padding:5px;border: 1px solid black">
+                            <apex:variable value="{!0}" var="j"/>
+                            <table>
+                                <apex:repeat value="{!set.customCriterias}" var="cc">
+                                    <tr>
+                                        <td style="width:100px;">
+                                            <!--
+                                                è possibile modificare un profilo solo se la chiave è tra quelle editabili
+                                            -->
+                                            <!-- debug
+                                            ISBLANK(cc.group__c) = {! ISBLANK(cc.group__c) }<br/>
+                                            CONTAINS(keysString,cc.Custom_Targeting_Key__c + cc.group__c) = {!CONTAINS(keysString,cc.Custom_Targeting_Key__c & cc.group__c)} <br/>
+                                            CONTAINS(keysString,cc.Custom_Targeting_Key__c) = {! CONTAINS(keysString,cc.Custom_Targeting_Key__c) } <br />
+                                            <!-- -->
+                                            
+                                            <apex:variable value="{! OR(AND(NOT(ISBLANK(cc.group__c)),CONTAINS(keysString,cc.Custom_Targeting_Key__c & cc.group__c)),AND(ISBLANK(cc.group__c),CONTAINS(keysString,cc.Custom_Targeting_Key__c&';'))) }" var="keyEditable" />
+                                            <apex:outputText rendered="{!editMode && showAction && keyEditable}">
+                                                <a onclick="deleteCCJs({!i},{!j})" style="cursor:pointer;">elimina profilo</a> &nbsp;|&nbsp;
+                                                <br />
+                                                <a onclick="editCCJs({!i},{!j})" style="cursor:pointer;">modifica profilo</a> &nbsp;|&nbsp;
+                                            </apex:outputText>
+                                            
+                                        </td>
+                                        <td style="width:300px;">
+                                            {!visualKeyMap[cc.Custom_Targeting_Key__c]}
+                                            {!cc.operator__c} <br />
+                                            {!cc.values__c}
+                                        </td>
+                                    </tr>
+                                <apex:outputText escape="false" value="{! '<tr><td><span class=\"pbSubheader tertiaryPalette\" style=\"clear:both;\">AND</span></td><td/></tr>'}" rendered="{! j <> set.customCriterias.size -1}"  />
+                                    
+                                <apex:variable value="{!j+1}" var="j"/>    
+                                </apex:repeat>
+                            </table>
+                        </apex:outputPanel>
+                    </apex:pageBlockSection>
+                    <apex:variable value="{!i+1}" var="i"/>    
+                </apex:repeat>
+            </apex:outputPanel>
+        </apex:pageBlock>
+    </apex:outputPanel>
+    <apex:outputPanel style="float:left;" layout="block" id="editPageBlock">    
+        <apex:pageBlock mode="edit" rendered="{!NOT(ISBLANK(customCriteria))}" >
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Salva profilo" action="{!saveCustomCriteria}" reRender="editPageBlock,table"/>
+                <apex:commandButton value="Annulla" immediate="true" action="{!cancelCustomCriteria}" reRender="editPageBlock,table"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection columns="1" id="mainBlockSection">
+                <apex:pageBlockSectionItem rendered="{!ISBLANK(CustomCriteria.Custom_Targeting_Key__c)}">
+                    <apex:outputLabel value="{!$ObjectType.Custom_Criteria__c.fields.Custom_Targeting_Key__c.label}" />
+                    <apex:outputText id="keyPanel" >
+                        <div class="requiredInput">
+                            <div class="requiredBlock" />
+                            <script>
+                                function onChangeKey(){
+                                    var selKey = document.getElementById('{!$Component.key}');
+                                    if(selKey.value != ''){
+                                        rerenderSelectCheckboxes(selKey.value);
+                                    }else{
+                                        resetKeyJs();
+                                    }
+                                }
+                            </script>
+                            <apex:selectList id="key" required="true" size="1" onchange="onChangeKey();" >
+                                <apex:selectOptions value="{!keys}"  />
+                            </apex:selectList>
+                            <apex:message for="key" style="color:red;"/>
+                        </div>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageMessages />
+                <apex:pageBlockSectionItem rendered="{!NOT(ISBLANK(CustomCriteria.Custom_Targeting_Key__c))}">
+                    <apex:outputLabel value="{!$ObjectType.Custom_Criteria__c.fields.Custom_Targeting_Key__c.label}" />
+                    <apex:outputText value="{!visualKeyMap[CustomCriteria.Custom_Targeting_Key__c]}" />                
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection id="panelGroups" showHeader="false">
+            <!-- GROUPS SELECT OPTIONS -->
+                <apex:pageBlockSectionItem rendered="{!showGroupOptions}">
+                    <apex:outputLabel value="Group"/> 
+                    <apex:selectList value="{!groupSelected}" size="1" multiselect="false" onchange="optionsFromGroup()" disabled="{!disableGroupSelection}">
+                        <apex:selectOptions value="{!groups}" />
+                    </apex:selectList>                        
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection showHeader="false">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="{!$ObjectType.Custom_Criteria__c.fields.operator__c.label}" />
+                    <apex:outputText >
+                        <div class="requiredInput">
+                            <div class="requiredBlock" />
+                            <apex:selectList required="true" value="{!CustomCriteria.operator__c}" size="1" >
+                                <apex:selectOptions value="{!IsNot}"  />
+                            </apex:selectList>                        
+                        </div>
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>                
+            </apex:pageBlockSection>
+            <apex:pageBlockSection id="selectCheckboxes">
+                <apex:selectCheckboxes value="{!selectedValues}" layout="pageDirection" style="width:800px;">
+                    <apex:selectOptions value="{!values}" /> 
+                </apex:selectCheckboxes>
+                <apex:actionFunction name="optionsFromGroup" action="{!populateOptions}" reRender="selectCheckboxes">
+                </apex:actionFunction>
+                <apex:actionFunction name="resetKeyJs" action="{!resetKey}" immediate="true" rerender="selectCheckboxes" />
+                <apex:actionFunction name="rerenderSelectCheckboxes" action="{!getKeyValues}" rerender="selectCheckboxes, panelGroups">
+                    <apex:param name="key" value="" assignTo="{!CustomCriteria.Custom_Targeting_Key__c}"/>
+                </apex:actionFunction>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:outputPanel>
+</apex:form>        
+    <div style="clear:both;" />        
+</apex:component>

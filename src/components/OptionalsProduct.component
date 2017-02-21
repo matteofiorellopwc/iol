@@ -1,0 +1,60 @@
+<apex:component allowDML="true" controller="ControllerOptionalsProduct">
+
+    <apex:variable var="editMode" value="{!$CurrentPage.parameters.editMode == 'true'}" />
+
+    <apex:form >
+       
+        <script>
+            function deleteOptJs(idCol){
+                idCol = idCol.replace(':col','');
+                rowNum = idCol[idCol.length-1];
+                showLoading();
+                deleteOpt(rowNum);
+            }
+            
+            function showLoading(){
+                $('#loading').show();
+            }
+            
+            function hideLoading(){
+                $('#loading').hide();
+            }
+        </script>
+        
+        <apex:actionFunction name="deleteOpt" immediate="true" action="{!deleteOptional}" rerender="table" >
+            <apex:param name="indexToDelete" value="" assignTo="{!indexToDelete}"/>
+        </apex:actionFunction>
+        
+        <apex:pageBlock id="table">
+            <apex:pageBlockButtons location="top">
+                <apex:outputText rendered="{!NOT(editMode)}">
+                    <apex:componentBody />
+                </apex:outputText>            
+                <apex:commandButton rendered="{!editMode}" action="{!customSave}" value="save" />
+                <apex:commandButton onclick="showLoading();" action="{!addOptional}" reRender="table" value="Add" rendered="{!editMode}" />
+                <img id="loading" src="/img/loading32.gif" style="width:20px;display:none;"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockTable value="{!optionals}" var="o">
+               <apex:column id="col" rendered="{!editMode}">
+                   <a style="cursor:pointer;" onclick="deleteOptJs('{!$Component.col}')">delete</a>
+               </apex:column>
+               <apex:column headerValue="Tipo">
+                   <apex:inputField rendered="{!editMode}" value="{!o.Tipo__c}" required="true" />
+                   <apex:outputField rendered="{!NOT(editMode)}" value="{!o.Tipo__c}" />
+               </apex:column>
+               <apex:column headerValue="Quantità">
+                   <apex:inputField rendered="{!editMode}" value="{!o.Quantita__c}" required="true" />
+                   <apex:outputField rendered="{!NOT(editMode)}" value="{!o.Quantita__c}" />
+               </apex:column>               
+               <apex:column headerValue="Incremento %">
+                   <apex:inputField rendered="{!editMode}" value="{!o.incremento__c}" required="true" />
+                   <apex:outputField rendered="{!NOT(editMode)}" value="{!o.incremento__c}" />
+               </apex:column> 
+               <apex:column headerValue="Incremento calcolato">
+                    <apex:outputField value="{!o.Incremento_calcolato__c}" />
+               </apex:column>              
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+    </apex:form>
+
+</apex:component>

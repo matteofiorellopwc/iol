@@ -1,0 +1,36 @@
+<apex:page standardController="Opportunity" extensions="ExtensionAddProduct">
+    <apex:outputText rendered="{!Opportunity.In_approvazione__c}" >
+        <apex:pageMessage title="Attenzione!" rendered="{!Opportunity.isclosed}" detail="Campagna chiusa, non è possibile aggiungere altri prodotti!" severity="warning" />
+        <apex:pageMessage title="Attenzione!" rendered="{!Opportunity.In_approvazione__c}" detail="Campagna in approvazione, non è possibile aggiungere altri prodotti!" severity="warning" />        
+        <a href="/{!opportunity.id}">indietro</a>
+    </apex:outputText>
+    <apex:outputText rendered="{!NOT(Opportunity.In_approvazione__c)}" >
+        <apex:pageMessages ></apex:pageMessages>
+        <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+        <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.dataTables.js')}"/>
+        <apex:form >
+            <apex:pageBlock >
+                <apex:pageBlockSection columns="1">
+                     <apex:pageBlockSectionItem >
+                        <apex:outputLabel >{!$ObjectType.PacchettoCombo__c.fields.name.label}</apex:outputLabel>
+                        <apex:inputText value="{!prodname}"/>
+                    </apex:pageBlockSectionItem>
+                </apex:pageBlockSection>
+                <apex:pageBlockButtons location="bottom">
+                    <apex:commandButton action="{!searchPacchettoCombo}" value="Cerca" /> <!-- reRender="prodottitable" -->
+                    <apex:commandButton action="{!cancel}" value="Annulla" /> <!-- reRender="prodottitable" -->
+                </apex:pageBlockButtons>
+            </apex:pageBlock>
+            <apex:pageBlock id="prodottitable" rendered="{!pacchetti.size > 0}">
+                <apex:pageBlockTable value="{!pacchetti}" var="p" style="width:400px;" >
+                    <apex:column width="60px">
+                        <apex:commandLink action="{!addPacchettoCombo}" value="aggiungi" >
+                            <apex:param name="pacId" value="{!p.id}" assignTo="{!pacId}" />
+                        </apex:commandLink>
+                    </apex:column>
+                    <apex:column value="{!p.name}"/>
+                </apex:pageBlockTable>
+            </apex:pageBlock>
+        </apex:form>
+    </apex:outputText>        
+</apex:page>

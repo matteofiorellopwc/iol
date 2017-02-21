@@ -1,0 +1,46 @@
+<apex:page controller="ViewMultiReport" action="{!getReportContent}" sidebar="false" >
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <style>
+        .drilldown,label[for="drillbreak"],#drillbreak,input[name="drilldown"]{
+            display:none;
+        }
+        
+        .bPageTitle,.ptBody,.progressIndicator,#roleHierarchyLinks,#roleSelector,#selectedHierarchyElement,
+        div.bFilterReport,.reportHeader,input,div.confidential{
+            display:none;
+        }
+
+        #rep1,#rep2{
+            float:left;
+        }
+        
+        #rep1{
+            padding-right: 10px;
+        }
+        
+        
+        
+        .reportTable td{
+            padding: 10px;
+        }
+    </style>
+    <script>
+        $(document).ready(function(){
+            $('#parent').width(($('#rep1').width()+$('#rep2').width()+100)+'px');
+        });
+    </script>
+    <div id="parent">
+        <div id="rep1">
+            <!--
+            <a href="/{!$currentPage.parameters.rep1}">vai al report 1</a>
+            -->
+            <apex:outputText escape="false" value="{!body1}" />
+        </div>
+        <div id="rep2">
+            <!-- 
+                <a href="/{!$currentPage.parameters.rep2}">vai al report 2</a>        
+            -->
+            <apex:outputText escape="false" value="{!body2}" />    
+        </div>
+    </div>        
+</apex:page>

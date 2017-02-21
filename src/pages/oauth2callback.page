@@ -1,0 +1,61 @@
+<apex:page controller="ControllerOauth2" action="{!getToken}">
+    <apex:pageMessages ></apex:pageMessages>
+
+    <apex:form >
+        <apex:pageBlock id="userInfo">
+            <apex:pageMessage title="Errore" 
+                          detail="{!error}"  
+                          severity="error"
+                          rendered="{!error != ''}" />
+            <apex:pageBlockSection columns="1" rendered="{!tokenNumber == 1}" >
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >Autenticazione effettuata</apex:outputText>
+                    <apex:outputText ><apex:image url="/img/msg_icons/confirm16.png" /></apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputText ></apex:outputText>
+                    <apex:outputText >
+                        <apex:commandButton value="Test autenticazione" 
+                                            action="{!testAuth}" 
+                                            reRender="userInfo"
+                                            onclick="document.getElementById('{!$Component.loading}').style.display = '';" />
+                        <apex:commandButton value="Reset autenticazione" 
+                                            action="{!resetAuth}" 
+                                            reRender="userInfo"
+                                            onclick="if(!confirm('Non si potrà più interagire con il dfp')){return false;}document.getElementById('{!$Component.loading}').style.display = '';" />                                            
+                        <br />
+                        <apex:image url="/img/loading32.gif" style="display:none;" id="loading" />
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            <apex:pageBlockSection columns="1" rendered="{!NOT(ISBLANK(currentUser.id))}">
+                    <apex:pageBlockSectionItem >
+                        <apex:outputText >Id</apex:outputText>
+                        <apex:outputText >{!currentUser.id}</apex:outputText>
+                    </apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem >
+                        <apex:outputText >Name</apex:outputText>
+                        <apex:outputText >{!currentUser.name}</apex:outputText>
+                    </apex:pageBlockSectionItem>
+                    <apex:pageBlockSectionItem >
+                        <apex:outputText >Email</apex:outputText>
+                        <apex:outputText >{!currentUser.email}</apex:outputText>
+                    </apex:pageBlockSectionItem> 
+                    <apex:pageBlockSectionItem >
+                        <apex:outputText >User Record Type</apex:outputText>
+                        <apex:outputText >{!currentUser.UserRecord_Type}</apex:outputText>
+                    </apex:pageBlockSectionItem>                     
+            </apex:pageBlockSection>
+            <apex:pageBlockSection columns="1" rendered="{!tokenNumber == 0}">
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >Autenticazione non effettuata</apex:outputText>
+                    <apex:outputText ><apex:image url="/img/msg_icons/error16.png" /></apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputText ></apex:outputText>
+                    <apex:outputText ><apex:commandButton value="Effettua connessione" action="{!getCode}"/></apex:outputText>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

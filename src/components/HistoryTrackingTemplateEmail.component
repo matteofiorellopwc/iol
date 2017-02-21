@@ -1,0 +1,7 @@
+<apex:component controller="ControllerHistoryTrackingTemplateEmail" access="global" >
+    <apex:attribute name="sId" type="String" description="Sobject" assignTo="{!sobjectid}" />
+    <apex:attribute name="ultimaRiapertura" description="data ultima riapertura opportunità" assignTo="{!dataUltimaRiapertura}" type="Date" />
+    
+    <apex:outputText value="{!fieldsChanged}" escape="false" />
+
+</apex:component>

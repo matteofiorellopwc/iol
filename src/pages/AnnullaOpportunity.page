@@ -1,0 +1,58 @@
+<apex:page standardController="Opportunity" extensions="ExtensionAnnullaOpportunity" action="{!init}" cache="flase">
+    <style>        
+        .box-info {
+            text-align: left;
+            -webkit-border-radius: 4px;
+            -moz-border-radius: 4px;
+            border-radius: 4px;
+            padding: 10px 12px;
+            border: 1px solid #39f;
+            background: #FFFFCC;
+            width: 600px;
+            margin: 50px auto 20px auto;
+        }
+        
+        .box-button {
+            text-align: center;
+        }
+        
+        .msgIcon {
+            background-image: url(/img/msg_icons/info24.png);
+            background-position: 0 0;
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }        
+    </style>
+    <apex:pageMessages />
+    <apex:variable value="{!Opportunity.DataPrimaChiusaVinta__c == null}" var="nonChiusaVinta" />
+    <apex:pageMessage strength="2" severity="warning" rendered="{!nonChiusaVinta}" title="Attenzione" detail="Non è possibile annullare una opportunity se non è stata chiusa vinta almeno una volta" />
+    <apex:form >
+        <apex:variable value="{!Opportunity.StageName == 'Annullata'}" var="OpportunityAnnullata"/>
+        <apex:commandButton action="{!goBack}" value="Indietro" style="width:50px; margin-left: 25px"/>
+        <apex:pageMessage rendered="{!OpportunityAnnullata}" severity="info" strength="2" detail="Questa opportunity è stata già annullata." />
+        <apex:outputPanel rendered="{!AND(NOT(hasErrors),NOT(OpportunityAnnullata),NOT(nonChiusaVinta))}">
+            <div class="box">
+                <div class="box-info">
+                    <img alt="INFO" class="msgIcon" src="/s.gif" title="INFO"/>
+                    Annullare la campagna?<br/>
+                    Una campagna anullata non può più essere attivata.<br/>
+                    Si desidera procedere?
+                </div>
+                <div class="box-button">
+                    <apex:commandButton action="{!annullaOpportunity}" value="Si" style="width:50px;"/>
+                    <apex:commandButton action="{!goBack}" value="No" style="width:50px; margin-left: 25px"/>
+                </div>
+            </div>           
+        </apex:outputPanel>
+    </apex:form>
+    
+    <apex:outputText rendered="false">
+        {!Opportunity.StageName}
+        {!Opportunity.id_dfp__c}
+        {!Opportunity.Id_Oas__c}
+        {!Opportunity.Status__c}
+        {!Opportunity.isArchived__c}
+    </apex:outputText>
+</apex:page>

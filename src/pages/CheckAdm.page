@@ -1,0 +1,54 @@
+<apex:page standardController="Opportunity" extensions="ControllerCheckAdm">
+
+<apex:form >
+<apex:pagemessages />
+<apex:pageBlock >
+
+    <apex:pageBlockSection title="Anagrafica di fatturazione" >
+        <!-- <apex:repeat value="{!$ObjectType.Account.FieldSets.Anagrafica_fatturazione}" var="f"> 
+            <apex:outputText value="{!o.Anagrafica_di_Fatturazione__c[f]}" /><br/>
+        </apex:repeat> -->
+        <apex:outputField value="{!o.Name}"/>
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__c}"/>
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__r.Ragione_sociale_fattura__c}"/>
+        <apex:outputField value="{!o.StageName}"/>
+        <apex:outputField value="{!o.Check_amministrativo__c}"/>
+        <apex:outputField value="{!o.Escludi_da_fatt_auto__c}"/>
+    </apex:pageBlockSection>
+    
+    <apex:pageBlockSection title="Indirizzi di fatturazione" >
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__r.BillingStreet}"/>
+        <apex:outputField value="{!q.Indirizzo_Spedizione_Alternativo__r.Via__c}"/>
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__r.BillingCity}"/>
+        <apex:outputField value="{!q.Indirizzo_Spedizione_Alternativo__r.Citta__c}"/>
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__r.BillingState}"/>
+        <apex:outputField value="{!q.Indirizzo_Spedizione_Alternativo__r.Provincia__c}"/>
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__r.BillingPostalCode}"/>
+        <apex:outputField value="{!q.Indirizzo_Spedizione_Alternativo__r.Cap__c}"/>
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__r.BillingCountry}"/>
+        <apex:outputField value="{!q.Indirizzo_Spedizione_Alternativo__r.Stato__c}"/>
+        <apex:outputField value="{!o.Anagrafica_di_Fatturazione__r.Email_principale__c}"/>
+        <apex:outputField value="{!q.Indirizzo_Spedizione_Alternativo__r.Email_di_Spedizione__c}"/>
+        <apex:outputField value="{!q.Email_aggiuntive__c}" rendered="{!NOT(ISBLANK(q.Email_aggiuntive__c))}"/>
+    </apex:pageBlockSection>
+    
+    <apex:pageBlockSection title="Quote Info" >
+        <apex:outputField value="{!q.Name}"/>
+        <apex:outputField value="{!q.Modalita_di_spedizione__c}"/>
+        <apex:outputField value="{!q.Metodo_di_pagamento__c}"/>
+        <apex:outputField value="{!q.Termini_di_pagamento__c}"/>
+        <apex:outputField value="{!q.Indirizzo_Spedizione_Alternativo__c}"/>
+        <apex:outputField value="{!q.Lingua_template_fattura__c}"/>
+    </apex:pageBlockSection>
+    
+    <apex:pageBlockButtons >
+        <apex:commandButton value="Torna all'opportunità" action="{!back}"/>
+        <apex:commandButton value="Autorizza" action="{!checkFlag}" rendered="{!checkButton}"/>
+        <apex:commandButton value="Revoca Check amm." action="{!resetCheckAdm}" rendered="{!o.Check_amministrativo__c}"/>
+        <apex:commandButton value="Escludi da fatturazione automatica" action="{!excludeFatt}" rendered="{!NOT(o.Escludi_da_fatt_auto__c)}"/>
+        <apex:commandButton value="Includi in fatturazione automatica" action="{!includeFatt}" rendered="{!o.Escludi_da_fatt_auto__c}"/>
+    </apex:pageBlockButtons>
+    
+</apex:pageBlock>
+</apex:form>
+</apex:page>

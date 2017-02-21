@@ -1,0 +1,14 @@
+<apex:page standardController="Account" extensions="ExtensionInvestimentiAnni" >
+<body style="margin:0px;margin-left:-10px;">
+    <apex:pageBlock mode="maindetail">
+        <apex:pageBlockSection >
+            <apex:repeat value="{!anni}" var="i">
+                <apex:pageBlockSectionItem >
+                    <apex:outputText >{!i}</apex:outputText>
+                    <apex:outputText >{!investimenti[i]}</apex:outputText>
+                </apex:pageBlockSectionItem>            
+            </apex:repeat>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</body>
+</apex:page>

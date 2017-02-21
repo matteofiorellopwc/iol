@@ -1,0 +1,78 @@
+<apex:page standardController="Opportunity">
+    <a href="/{!Opportunity.id}">
+        Indietro
+    </a>
+    <apex:sectionHeader subtitle="Dettaglio line item {!Opportunity.Name}"/>
+    <apex:pageBlock >
+        <apex:pageBlockTable value="{!Opportunity.Line_items__r}" var="li">
+            <apex:column width="400px" value="{!li.Nome_DFP__c}" />
+            <apex:column value="{!li.Delivery_Model__c}" />
+            <apex:column value="{!li.Prezzo_net_net__c}" />
+            <apex:column value="{!li.Quantita__c}" />   
+            <apex:column width="160px" headerValue="Ricavi">   
+                <table>                                                                 
+                    <tr>
+                        <td>
+                            Iniziale
+                        </td>
+                        <td>
+                            <apex:outputField value="{!li.Totale__c}" />                                                                          
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Minor ricavi
+                        </td>
+                        <td>
+                            <apex:outputField value="{!li.Totale_ripianificato__c}" />                                                                        
+                        </td>
+                    </tr>
+                    <tr style="font-weight:bold;">
+                        <td>
+                            Totale
+                        </td>
+                        <td>
+                            <apex:outputField value="{!li.Totale_Ricavi__c}" />            
+                        </td>
+                    </tr>
+                </table>
+            </apex:column>
+            <apex:column width="160px" headerValue="{!$Label.RevenueApplications}">   
+                <table>                                                                 
+                    <tr>
+                        <td>
+                            Iniziale
+                        </td>
+                        <td>
+                            <apex:outputField value="{!li.Somma_valore_revenue_application__c}" />                                                                          
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Minor ricavi
+                        </td>
+                        <td>
+                            <apex:outputField value="{!li.SommaRevenueMinorRicavo__c}" />                                                                        
+                        </td>
+                    </tr>
+                    <tr style="font-weight:bold;">
+                        <td>
+                            Totale
+                        </td>
+                        <td>
+                            <apex:outputField value="{!li.TotaleRevenueApplication__c}" />            
+                        </td>
+                    </tr>
+                </table>
+            </apex:column>
+                    
+            <apex:column value="{!li.Alert__c}" />                                                                        
+<!--
+            <apex:column value="{!li.}" />                                                                        
+            <apex:column value="{!li.}" />                                                                        
+            <apex:column value="{!li.}" />                                                                        
+            <apex:column value="{!li.}" />                                                                        
+-->            
+        </apex:pageBlockTable>    
+    </apex:pageBlock>
+</apex:page>

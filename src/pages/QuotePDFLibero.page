@@ -1,0 +1,411 @@
+<apex:page standardController="Quote" extensions="ExtensionQuotePDFLibero" showHeader="false" renderAs="pdf">
+
+    <head>
+        <apex:stylesheet value="{!$Resource.PDFDocumentStyle}" />
+        <style type="text/css">
+
+            @page {
+             size:landscape;
+            }
+            
+            body{
+                font-size: 11px;
+            }
+
+            .center{
+                text-align: center;
+            }
+            
+            .liberoTable{
+                border: 1px solid black;
+                border-spacing: 0px;
+            }
+            
+            .liberoBorder{
+                border: 2px solid black;
+            }
+            
+            .liberoBackground{
+                color: white;
+                background-color: #555;
+            }
+            
+            .liberoTable th{
+                color: white;
+                background-color: #555;
+                text-align: center;
+            }
+            
+            .liberoTable td,.liberoTable th{
+                border: 1px solid black;
+            }
+            
+            .widthBlocco1{
+                width: 300px;
+            }
+            
+            table.widthBlocco1{
+                width: 304px;
+            }
+            
+            .widthCol1{
+                width: 150px;
+            }
+            
+            #block11{
+                float:left;
+            }
+            
+            #block12{
+                float:left;
+                padding-left:60px;
+            }
+            
+            #block13{
+                float:right;
+            }
+            
+            #block12 .liberoTable{
+                width:300px;
+            }
+            
+            #block2{
+                clear:both;
+                page-break-inside:avoid;
+            }
+            
+            #dataTable{
+                float:right;
+                margin-bottom: 15px;
+            }
+            
+            #rifAccountTable{
+                clear:both;
+                width:250px;
+            }
+            
+            #footer{
+                font-size: 9px;
+            }
+            
+            .liberoTable tr td.tdBlank{
+                border:none;
+            }
+            
+            #block2 table{
+                width:930px;
+                border: none;
+            }
+            
+            #block3{
+                width:300px;
+                padding: 5px:
+            }
+        
+            
+        </style>
+    </head>
+
+    <body>
+    <apex:variable value="{!AND(Quote.Opportunity.Approvazione_richiesta__c > 0,NOT(Quote.Opportunity.Approvata_commercialmente__c))}" var="notApproved"/>
+        <div>
+            <apex:image url="/resource/logo_libero" width="250px" />
+            <apex:image rendered="{!notApproved}" style="float:right;" url="/resource/bozza" width="200px" />
+        </div>
+        <div id="block1">
+            <div id="block11">
+                <table class="liberoTable widthBlocco1">
+                    <thead>
+                        <tr>
+                            <th colspan="2" >Anagrafica Cliente</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="widthCol1">Ragione Sociale Cliente</td>
+                            <td>{!Quote.Opportunity.Account.name}</td>
+                        </tr>
+                        <tr>
+                            <td>P.IVA</td>
+                            <td>{!Quote.Opportunity.Account.Cliente_lookup__r.partita_iva__c}</td>
+                        </tr>                    
+                    </tbody>
+                </table>    
+                <br />
+                <table class="liberoTable widthBlocco1">
+                    <thead>
+                        <tr>
+                            <th colspan="2" >&nbsp;</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="widthCol1">Nome campagna</td>
+                            <td>{!Quote.Opportunity.name}</td>
+                        </tr>
+                        <tr>
+                            <td>Data inizio</td>
+                            <td><apex:outputField value="{!Quote.Opportunity.Data_inizio__c}"/></td>
+                        </tr>                    
+                        <tr>
+                            <td>Data fine</td>
+                            <td><apex:outputField value="{!Quote.Opportunity.Data_fine__c}"/></td>
+                        </tr>                                        
+                    </tbody>
+                </table>  
+                <br />
+                <table class="liberoTable widthBlocco1">
+                    <thead>
+                        <tr>
+                            <th colspan="2" >Condizioni di pagamento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="widthCol1">Modalità di pagamento</td>
+                            <td>{!Quote.Metodo_di_pagamento__c}</td>
+                        </tr>
+                        <tr>
+                            <td>Condizioni di pagamento</td>
+                            <td>BONIF</td> <!-- {!Quote.Termini_di_pagamento__c} -->
+                        </tr>                    
+                    </tbody>
+                </table> 
+                <br /> 
+                <div class="liberoBorder widthBlocco1">Inserzioni, indicazione siti, periodo, impression, listino</div>
+                <!--
+                    <br />
+                    <div class="liberoBorder liberoBackground widthBlocco1"  >Dettaglio pianificazione: ipotesi A</div>
+                    <br />
+                    <div class="liberoBorder liberoBackground widthBlocco1">Dettaglio pianificazione: ipotesi B</div>
+                -->
+                    <br />
+            </div>
+            <div id="block12">
+                <table class="liberoTable">
+                    <tbody>
+                        <tr>
+                            <td class="liberoBackground center">CENTRO MEDIA</td>
+                        </tr>
+                        <tr>
+                            <td class="center">{!Quote.Opportunity.Centro_Media__r.name}&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td class="liberoBackground center">ACCOUNT</td>
+                        </tr>
+                        <tr>
+                            <td class="center">{!quote.opportunity.riferimento_centro_media__r.name}&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td class="liberoBackground center">RIFERIMENTO CLIENTE</td>
+                        </tr>
+                        <tr>
+                            <td class="center">{!quote.contact.name}&nbsp;</td>
+                        </tr>
+                        <!--
+                            <tr>
+                                <td class="liberoBackground center">MAIL</td>
+                            </tr>
+                            <tr>
+                                <td class="center">{!quote.contact.email}&nbsp;</td>
+                            </tr>                                                                                                                                                
+                        -->
+                    </tbody>
+                </table> 
+            </div>
+            <div id="block13">
+                <table id="dataTable" class="liberoTable">
+                    <thead>
+                        <tr>
+                            <th >Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{!DAY(TODAY())}/{!MONTH(TODAY())}/{!YEAR(TODAY())}</td>
+                        </tr>
+                    </tbody>
+                </table>  
+                <table id="rifAccountTable" class="liberoTable">
+                    <thead>
+                        <tr>
+                            <th>Riferimenti Account</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>COD. Account Cliente: {!Quote.Opportunity.Account.owner.name}</td>
+                        </tr>
+                        <tr>
+                            <td>COD.Account Agenzia: {!Quote.Opportunity.agenzia_di_riferimento__r.owner.name}</td>
+                        </tr>
+                        <tr>
+                            <td>COD Account centro media: {!Quote.Opportunity.centro_media__r.owner.name} </td>
+                        </tr>
+                        <tr>
+                            <td>N. Proposta: {!Quote.opportunity.identificativo_campagna__C}</td>
+                        </tr>                                                                        
+                    </tbody>
+                </table>                                   
+            </div>            
+        </div>
+        <div id="blockSep" ></div>
+        <div id="block2">
+            <table class="liberoTable" >
+                <thead>
+                    <tr>
+                        <th class="widthCol1">Prodotto</th>
+                        <th>Contenitore</th>
+                        <th>Optionals</th>
+                        <th>GG</th>
+                        <th>Data inizio</th>
+                        <th>Data fine</th>
+                        <th>UV's<!--'--><br />gg</th>
+                        <!--
+                            <th>Bacino Imp GG</th>
+                            <th>% Pressione Imp GG</th>
+                        -->
+                        <th>Quantità</th>
+                        <th>Listino</th>
+                        <th>Sc. %</th>
+                        <th>Netto</th>
+                        <th>Net net</th>
+                        <th>CPM Netto</th>
+                        <th>CPM net net</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <apex:variable value="{!0}" var="totImp"/>
+                    <apex:variable value="{!0}" var="totNet"/>
+                    <apex:repeat value="{!lineitems}" var="li">
+                        <tr>
+                            <td>
+                                {!li.Prodotto__c}
+                            </td>
+                            <td>{!li.product__r.canale_primario__c}&nbsp;</td>
+                            <td>
+                                <apex:repeat value="{!li.optionals__r}" var="o">
+                                     {!o.Tipo__c} ({!FLOOR(o.Quantita__c)})<br/>
+                                </apex:repeat>
+                            </td>
+                            <td><apex:outputField value="{!li.Quantita__c}" rendered="{!li.Delivery_Model__c = 'CPD'}" /></td>
+                            <td><apex:outputField value="{!li.Start_Date__c}" />&nbsp;</td>
+                            <td><apex:outputField value="{!li.End_Date__c}" />&nbsp;</td>
+                            <td><apex:outputField value="{!li.UV_s_gg__c}" />&nbsp;</td>
+                            <!--
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            -->
+                            <td>
+                                <apex:variable value="{!totImp + IF(li.Delivery_Model__c = 'CPD',li.Impressions_stimate__c,li.Quantita__c)}" var="totImp"/>
+                                <apex:outputField value="{!li.Quantita__c}" rendered="{!li.Delivery_Model__c <> 'CPD'}" />
+                                <apex:outputField value="{!li.Impressions_stimate__c}" rendered="{!AND(li.Delivery_Model__c = 'CPD',li.Product__r.family = 'Banner')}" />
+                                &nbsp;
+                             </td>
+                            <td><apex:outputField value="{!li.Totale_senza_sconto__c}"/> &nbsp;</td>
+                            <td><apex:outputField value="{!li.sconto__c}"/>&nbsp;</td>
+                            <td>
+                                <apex:outputField value="{!li.Totale_net__c}"/> &nbsp;
+                                <apex:variable value="{!totNet + li.Totale_net__c}" var="totNet"/>
+                            </td>
+                            <td><apex:outputField value="{!li.Totale_net_net__c}"/>&nbsp;</td>
+                            <td><apex:outputField value="{!li.CPM_net__c}"/>&nbsp;</td>
+                            <td><apex:outputField value="{!li.cpm_net_net__c}"/>&nbsp;</td>
+                        </tr>
+                    </apex:repeat>
+                    <apex:repeat value="{!pacchetti}" var="p">
+                        <tr>
+                            <td>
+                                {!p.nome_pacchetto__c}
+                            </td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td><apex:outputField value="{!p.Data_inizio__c}" />&nbsp;</td>
+                            <td><apex:outputField value="{!p.Data_fine__c}" />&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <!--
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            -->
+                            <td>
+                                <apex:variable value="{!totImp + p.Quantita_totale__c }" var="totImp"/>
+                                <apex:outputField value="{!p.Quantita_totale__c}"/>
+                                &nbsp;
+                             </td>
+                            <td><apex:outputField value="{!p.Listino_formula__c}"/> &nbsp;</td>
+                            <td><apex:outputField value="{!p.Sconto__c}"/>&nbsp;</td>
+                            <td>
+                                <apex:outputField value="{!p.Totale_net__c}"/> &nbsp;
+                                <apex:variable value="{!totNet + p.Totale_net__c}" var="totNet"/>
+                            </td>
+                            <td><apex:outputField value="{!p.Totale__c}"/>&nbsp;</td>
+                            <td><apex:outputField value="{!p.CPM_net__c}"/>&nbsp;</td>
+                            <td><apex:outputField value="{!p.CPM_net_net__c}"/>&nbsp;</td>
+                        </tr>
+                    </apex:repeat>                    
+                    <tr>
+                        <td class="tdBlank" colspan="13">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td class="tdBlank" colspan="6">&nbsp;</td>
+                        <td>Totale lordo</td>
+                        <td><c:formatCurrency showDecimal="false" showCurrency="false" value="{!totImp}" /></td>
+                        <td><apex:outputField value="{!quote.opportunity.Totale_senza_sconto__c}"/> &nbsp;</td>
+                        <td class="tdBlank" colspan="5">&nbsp;</td>
+                    </tr> 
+                    <tr>
+                        <td class="tdBlank" colspan="14">&nbsp;</td>
+                    </tr>                        
+                    <tr>
+                        <td class="tdBlank" colspan="7">&nbsp;</td>
+                        <td>Totale Netto</td>
+                        <td colspan="2">&nbsp;</td>
+                        <td style="text-align:right;"><c:formatCurrency showDecimal="true" showCurrency="true" value="{!totNet}" /></td>
+                        <td class="tdBlank" colspan="3">&nbsp;</td>
+                    </tr>  
+                    <tr>
+                        <td class="tdBlank" colspan="7">&nbsp;</td>
+                        <td>Totale Net Net</td>
+                        <td colspan="3" style="text-align:right;"><apex:outputField value="{!quote.opportunity.Somma_totali__c}"/>&nbsp;</td>
+                        <td class="tdBlank" colspan="3">&nbsp;</td>
+                    </tr>  
+                    <tr>
+                        <td class="tdBlank" colspan="7">&nbsp;</td>
+                        <td>CPM net net</td>
+                        <td colspan="3" style="text-align:right;">
+                            <c:formatCurrency rendered="{!totImp > 0}" showDecimal="true" showCurrency="true" value="{!quote.opportunity.Somma_totali__c*1000/totImp}" />
+                        </td>
+                        <td class="tdBlank" colspan="3">&nbsp;</td>
+                    </tr>                                                                           
+                </tbody>
+            </table>             
+        </div> 
+        <apex:outputText rendered="{!NOT(ISBLANK(quote.description))}">
+            <div style="page-break-inside:avoid;" id="block3" class="liberoBorder" >
+                {!quote.description}
+            </div>
+        </apex:outputText>
+        
+        <!--
+        <div style="page-break-inside:avoid;">
+            <apex:image rendered="{!notApproved}" style="float:right;" url="/resource/bozza" width="200px" />
+        </div>
+        -->
+        <!--
+        <c:PDFHeaderFooter type="footer" position="center" >
+            <div id="footer">
+                Libero S.r.l. <br />
+                Società con socio unico. <br />
+                Sede legale: Via Lorenteggio, 257 - 20152 Milano Reg. Imp.: 1135291004 di Milano <br />
+                C.F. e Partita IVA: 11352961004 <br />
+                R.E.A. di Milano: MI-1965046 <br />
+                Cap. sociale euro 1.010.000,00 i.v. <br />
+            </div>
+        </c:PDFHeaderFooter> 
+       -->
+    </body>
+    <apex:outputText rendered="false">
+        {!quote.opportunity.id}
+    </apex:outputText>
+</apex:page>

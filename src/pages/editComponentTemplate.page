@@ -1,0 +1,14 @@
+<apex:page showHeader="false" tabStyle="Opportunity">
+
+    <style>
+        body{
+            background-color: transparent;
+        }
+    </style>
+
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <c:jQueryUtil />    
+    <apex:insert name="body" />
+     
+   
+</apex:page>

@@ -1,0 +1,4 @@
+<apex:page showHeader="false" tabStyle="Opportunity">
+	<apex:composition template="editComponentTemplate" />  
+	<c:Geography />
+</apex:page>

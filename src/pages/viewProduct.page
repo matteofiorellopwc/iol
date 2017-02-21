@@ -1,0 +1,88 @@
+<apex:page standardController="Product2" extensions="ExtensionEditProduct" action="{!checkRecordType}" >
+
+    <style>
+        .picklistTime{  width: 50px; }
+        .activeTab { background-color: #236FBD; color:white; background-image:none; }
+        .inactiveTab { background-color: lightgrey; color:black; background-image:none; }
+    </style>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <script>
+    
+    j$ = jQuery.noConflict();
+
+    jQuery(document).ready(function() {
+        jQuery('.picklistInventory').each(function(){
+            jQuery(this).find("option[value='']").remove();         
+        })
+    });
+    
+    
+        function changeInventoryType(){
+          if(confirm('Verranno cancellati tutte le Ad units / Placements impostati. Continuare?'))              
+            changeInventoryTypeJs();
+          else{
+            if(jQuery('.picklistInventory').val() == 'Ad Units')
+               jQuery('.picklistInventory').val('Placements');
+            else
+               jQuery('.picklistInventory').val('Ad Units');
+          }
+                                  
+        } 
+    </script>
+
+    <apex:detail subject="{!product2.id}" inlineEdit="false"/>
+    <apex:outputField value="{!product2.recordtypeid}" rendered="false"/>
+    <apex:outputField value="{!product2.Profili_gestione_targeting_prodotto__c}" rendered="false"/>
+    <apex:outputField value="{!product2.Size__c}" rendered="false"/>
+    <apex:outputField value="{!product2.Target_platform__c}" rendered="false"/>
+    <apex:outputField value="{!product2.CanalePrimario__c}" rendered="false"/> 
+    <apex:outputField value="{!product2.Delivery_Model__c}" rendered="false"/>
+    
+   
+    <apex:variable value="{!OR(Product2.Family = 'Search',Product2.Family = 'Placeholder')}" var="isSearchOrPlaceholder"/>
+     
+    <apex:tabPanel switchType="client" selectedTab="name2" tabClass="activeTab" inactiveTabClass="inactiveTab" rendered="{!NOT(isSearchOrPlaceholder)}">
+        <apex:tab label="Optionals" name="Optionals">
+            <iframe src="/apex/editOptionalsProductComponent?id={!Product2.id}" width="100%" height="800px"  frameborder="0" />            
+        </apex:tab>
+        <apex:tab label="Pages and Section" name="pagesSections" rendered="{!AND(Product2.Family = 'Banner', Product2.Ad_Server__c = 'OAS')}">
+            <iframe src="/apex/PagesSections?sobjectName=product__c&id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}&includeMode=true&excludeMode=true" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>
+        <!--  <apex:tab label="Inventory Target" name="invepicklistInventoryntory" rendered="{!AND(Product2.Family='Banner', Product2.Ad_Server__c='DFP', OR(Product2.Disponibile_solo_in_pacchetto_combo__c, AND(NOT(Product2.CalcolaCPDconImprStimate__c), Product2.Delivery_Model__c='CPD'), Product2.CanalePrimario__c == 'TimInternet',LEFT(Product2.CanalePrimario__c,3) == 'Cru', inventoryTargetCount > 0))}" > -->
+		<apex:tab label="Inventory Target" name="invepicklistInventoryntory" rendered="{!AND(Product2.Family='Banner', Product2.Ad_Server__c='DFP', OR(Product2.Disponibile_solo_in_pacchetto_combo__c, NOT(Product2.CalcolaCPDconImprStimate__c), Product2.CanalePrimario__c == 'TimInternet'))}" >     
+            <apex:form rendered="{!NOT(Product2.Delivery_Model__c == 'CPD')}">
+                 <apex:actionFunction name="changeInventoryTypeJs" action="{!changeAdUnitType}" rerender="InventoryTargetTab" />
+                 Inventory target type: <apex:inputField styleClass="picklistInventory" onchange="changeInventoryType();" value="{!Product2.InventoryTargetType__c}" />
+            </apex:form>
+            <apex:pageBlock id="InventoryTargetTab">
+                <apex:outputText rendered="{!Product2.InventoryTargetType__c == 'Ad Units'}">
+                    <iframe src="/apex/editInventoryTargetingComponent?sobjectName=product__c&id={!Product2.id}&drillDownLevel=0&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}&includeMode=true&excludeMode={!NOT(Product2.CalcolaCPDconImprStimate__c)}&filterSize={!Product2.Size__c}&platform={!Product2.target_platform__c}&maxIncludes={!IF(Product2.CalcolaCPDconImprStimate__c, 1, -1)}&canalePrimario={!Product2.CanalePrimario__c}" width="100%" height="800px"  frameborder="0" />     
+                </apex:outputText>
+                <apex:outputText rendered="{!Product2.InventoryTargetType__c == 'Placements'}">
+                    <iframe src="/apex/editPlacementComponent?sobjectName=product__c&id={!Product2.id}&canalePrimario={!Product2.CanalePrimario__c}&drillDownLevel=0&filterSize={!Product2.Size__c}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}&includeMode=true&excludeMode=true" width="100%" height="800px"  frameborder="0" />                   
+                </apex:outputText>
+            </apex:pageBlock>
+        </apex:tab>
+        <apex:tab label="Frequency Cap" name="frequencycap" rendered="{!Product2.Family = 'Banner'}">
+            <iframe src="/apex/editfrequencyCapComponent?sobjectName=product__c&id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}" width="100%" height="800px"  frameborder="0" />            
+        </apex:tab>
+        <apex:tab label="Day Part Targeting" name="daypart" rendered="{!Product2.Family <> 'DEM'}">
+            <iframe src="/apex/editDayPartTargetingComponent?sobjectName=product2&id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}" width="100%" height="800px"  frameborder="0" />            
+        </apex:tab>        
+        <apex:tab label="Custom Criteria" name="custom" rendered="{!AND(Product2.Family = 'Banner', Product2.Ad_Server__c = 'DFP')}" >
+            <iframe src="/apex/editCustomCriteriaComponent?sobjectName=product__c&id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>
+        <apex:tab label="Technology Target" name="technology" rendered="{!AND(Product2.Family = 'Banner', Product2.Ad_Server__c = 'DFP')}" >
+            <iframe src="/apex/editTechnologyTargetingComponent?sobjectName=product__c&id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>
+        <apex:tab label="Labels" name="label" rendered="{!AND(Product2.Family = 'Banner', Product2.Ad_Server__c = 'DFP')}">
+            <iframe src="/apex/editLabelComponent?id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>  
+        <apex:tab label="Cookie and Search Term" name="cookieSearch" rendered="{!AND(Product2.Family = 'Banner', Product2.Ad_Server__c = 'OAS')}">
+            <iframe src="/apex/EditCookieSearchTerm?sobjectName=product__c&id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}" width="100%" height="800px"  frameborder="0" />
+        </apex:tab>          
+        <apex:tab label="Geography Target" name="geography" rendered="{!AND(Product2.Family = 'Banner', Product2.Ad_Server__c = 'DFP')}"> 
+            <iframe src="/apex/EditGeographyComponent?sobjectName=product__c&id={!Product2.id}&editable={!CONTAINS(product2.Profili_gestione_targeting_prodotto__c,'_'&$Profile.Name&'_')}" width="100%" height="800px"  frameborder="0" /> 
+        </apex:tab>      
+    </apex:tabPanel>
+</apex:page>

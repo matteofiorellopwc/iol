@@ -1,0 +1,367 @@
+<apex:component allowDML="true" controller="GeographyController"> 
+    
+    <apex:includeScript value="{!URLFOR($Resource.aciTree,'/js/jquery.aciPlugin.min.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.aciTree,'/js/jquery.aciTree.dom.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.aciTree,'/js/jquery.aciTree.core.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.aciTree,'/js/jquery.aciTree.checkbox.js')}"/>
+    <apex:stylesheet value="{!URLFOR($Resource.aciTree, '/css/aciTree.css')}"/>
+ 
+      <style>
+          .myButton {
+              background-color: blue; 
+              padding: 2px;       
+          }
+      </style> 
+
+    <apex:variable var="editMode" value="{!0 == 0}" />
+    <apex:variable var="editable" value="{!$CurrentPage.parameters.editable == 'true'}" />
+
+    <script>
+        mode = "{!mode}";
+        
+        includedValues = {};
+        excludedValues = {};
+        
+        function populateView() {
+            populateTree = function (root,html,indent){
+                var found = false;
+                for(var k in includedValues) {
+                    var ivo = includedValues[k];
+                    if(ivo.id == root.id){
+                        html += "<div style=\"text-indent: " + indent + "px;\"><img src=\"/img/func_icons/util/checkmark16.gif\" />" + ivo.type + ': ' + ivo.label + "</div>";
+                        found = true;
+                        break;
+                    }
+                }
+                if(found == false){
+                    for(var k in excludedValues) {
+                        var ivo = excludedValues[k];            
+                        if(ivo.id == root.id){
+                            html += "<div style=\"text-indent: " + indent + "px;\"><img src=\"/img/func_icons/remove12_on.gif\" />" + ivo.type + ': ' + ivo.label + "</div>";
+                        }                       
+                    }
+                }
+                for(var indexChild in root.branch){
+                    var child = root.branch[indexChild];
+                    html = populateTree(child,html,indent);
+                }
+                return html;
+            };
+
+            var html = '';
+            for(var indexCountry in elements){
+                html += populateTree(elements[indexCountry],'',10);
+            }
+
+            $("#valueDiv").html(html);                        
+        }
+        
+        function swap() {
+            includedValues = {};
+            excludedValues = {};
+            document.getElementById(getIncludedValuesId()).value = [];
+            document.getElementById(getExcludedValuesId()).value = [];  
+            refreshTree();
+            populateView();
+        }
+        
+        function fecthNode(nodoId){
+            fetchNodeFromTree = function (root,nodoId){
+                if(root.id == nodoId){
+                    return root;
+                }
+                for(var indexChild in root.branch){
+                    var child = root.branch[indexChild];
+                    var node = fetchNodeFromTree(child,nodoId);
+                    if(node != null){
+                        return node;
+                    }
+                }
+                return null;
+            };
+            if(nodoId == null){
+                return null;
+            }
+            var node = null;
+            for(var indexCountry in elements)   {
+                var country = elements[indexCountry];
+                node = fetchNodeFromTree(country,nodoId);
+                if(node != null){
+                    break;
+                }
+            }
+            return node;
+        }
+
+        function deleteFromList (list,parentId){
+            var node = fecthNode(parentId);
+            if(list == 'included'){
+                for(var i in includedValues) {
+                    if(includedValues[i].parentId == node.id) {
+                        delete includedValues[i];
+                    }
+                }
+            }else if(list == 'excluded'){
+                for(var i in excludedValues) {
+                    if(excludedValues[i].parentId == node.id) {
+                        delete excludedValues[i];
+                    }
+                }   
+            }
+            for(var indexChild in node.branch){
+                var child = node.branch[indexChild];
+                deleteFromList (list,child.id);
+            }
+        }
+
+        function createTree(){
+            elements = JSON.parse('{!searchResultJson}');
+            $('#tree').aciTree({
+                rootData: elements,
+                checkbox: true,
+                collapse: false,
+                expand: false,
+                checkboxChain: true,
+                animateRoot: true,
+                loaderDelay: 0
+            });
+            
+        }
+
+
+        function refreshTree(){
+            $('#tree').aciTree('api').destroy({
+                success : function(){
+                    createTree();
+                }
+            });
+        }
+
+        $(document).ready(function() {
+
+            var x = "{!includedIdsString}".split(";");
+            var y = "{!excludedIdsString}".split(";");
+            elements = JSON.parse('{!searchResultJson}');
+            for(var i = 0 ; i < x.length; i++) {
+                if(x[i] != "") {
+                    var z = x[i].split("|");
+                    includedValues[z[2]] = null; // z[2] è l'id
+                }
+            }
+            for(var i = 0 ; i < y.length; i++) {
+                if(y[i] != "") {
+                    var z = y[i].split("|");
+                    var nodo = {
+                        id : z[2],
+                        label : z[1],
+                        type : z[0],
+                        parentId : z[3]
+                    };
+                    excludedValues[z[2]] = null; // z[2] è l'id
+                }
+            }       
+            for(var i in includedValues) {
+                includedValues[i] = fecthNode(i);
+            }
+            for(var i in excludedValues) {
+                excludedValues[i] = fecthNode(i);
+            }
+
+            populateView(); 
+            
+            itemList = [];
+
+            if(mode == 'edit') {
+               createTree();
+            }
+
+            $('#tree').on('acitree', 
+                function(event, api, item, eventName, options){
+                    if(eventName == 'beforecheck' || eventName == 'beforeuncheck'){
+                        var selectedOption = $("select option:selected").attr("value"); 
+                        var nodoId = api.getId(item);
+                        var node = fecthNode(nodoId);
+                        var parent = fecthNode(node.parentId);       
+                        var hasParent = false;
+                        var parentSelected = false;
+                        var rootSelected = false;
+                        if(parent != null && typeof parent != 'undefined'){
+                            hasParent = selectedOption == 'Includi' ? includedValues[parent.id] : excludedValues[parent.id];            
+                            parentSelected = hasParent != null && typeof hasParent != 'undefined';
+                            var rootParent = selectedOption == 'Includi' ? includedValues[parent.parentId] : excludedValues[parent.parentId];
+                            rootSelected = rootParent != null && typeof rootParent != 'undefined';
+                            if(!parentSelected){
+                                hasParent = rootParent;
+                            }
+                        }
+                        if(selectedOption == 'Includi' && eventName == 'beforecheck' && rootSelected == true && parentSelected == false){
+                            return false;
+                        }else if(selectedOption == 'Escludi' && eventName == 'beforeuncheck' && (rootSelected || parentSelected)){
+                            return false;
+                        }
+                    }else if((eventName == 'checked' || eventName == 'unchecked') && api.isItem(item)){                 
+                        var nodoId = api.getId(item);
+                        var node = fecthNode(nodoId);
+                        var parent = fecthNode(node.parentId);
+                        var isChecked = eventName == 'checked'; // boolean
+                        
+                        var selectedOption = $("select option:selected").attr("value");        
+                        node.checked = isChecked;
+                        var hasParent = false;
+                        var parentSelected = false;
+                        var rootSelected = false;
+                        if(parent != null && typeof parent != 'undefined'){
+                            hasParent = selectedOption == 'Includi' ? includedValues[parent.id] : excludedValues[parent.id];            
+                            parentSelected = hasParent != null && typeof hasParent != 'undefined';
+                            var rootParent = selectedOption == 'Includi' ? includedValues[parent.parentId] : excludedValues[parent.parentId];
+                            rootSelected = hasParent != null && typeof hasParent != 'undefined';
+                            if(!parentSelected){
+                                hasParent = rootParent;
+                            }
+                        }
+                        
+                        if(selectedOption == 'Includi') {
+                            if(!hasParent){  // non ha il parent selezionato
+                                if(isChecked){
+                                    includedValues[node.id] = node;
+                                }else{
+                                    delete includedValues[node.id];
+                                }
+                                deleteFromList('included',node.id);
+                                deleteFromList('excluded',node.id);
+                            }else{
+                                if(isChecked){
+                                    delete excludedValues[node.id];
+                                }else{
+                                    excludedValues[node.id] = node;
+                                    var allChildsUnchecked = true;
+                                    for(var indexChild in parent.branch){
+                                        var child = parent.branch[indexChild];
+                                        var foundUnchecked = false;
+                                        for(var k in excludedValues) {
+                                            var ivo = excludedValues[k];            
+                                            if(ivo.id == child.id){
+                                                foundUnchecked = true;
+                                                break;
+                                            }                       
+                                        }
+                                        if(foundUnchecked == false){
+                                            allChildsUnchecked = false;
+                                            break;
+                                        }
+                                    }
+                                    if(allChildsUnchecked == false){
+                                        delete includedValues[node.id];
+                                        deleteFromList('excluded',node.id);
+                                    }else if(allChildsUnchecked == true){
+                                        excludedValues[parent.id] = parent;     
+                                        delete includedValues[parent.id];
+                                        delete includedValues[node.id];
+                                        deleteFromList('excluded',parent.id);
+                                    }
+                                }
+                            }
+                        }else if(selectedOption == 'Escludi') {                                                                 
+                            if(!hasParent && !isChecked) {
+                                delete excludedValues[node.id];
+                            } else if(!hasParent && isChecked) {
+                                excludedValues[node.id] = node;             
+                            }        
+                            deleteFromList('included',node.id);
+                            deleteFromList('excluded',node.id);    
+                        }
+
+                        populateView();
+            
+                        var iv = [];
+                        var ev = [];
+                        for(var k in includedValues) {
+                            var nodo = [includedValues[k].type, includedValues[k].name, includedValues[k].id, includedValues[k].parentId];
+                            iv.push(nodo.join("|"));
+                        }
+                        for(var k in excludedValues) {
+                            var nodo = [excludedValues[k].type, excludedValues[k].name, excludedValues[k].id, excludedValues[k].parentId];
+                            ev.push(nodo.join("|"));
+                        }
+                        document.getElementById(getIncludedValuesId()).value = iv.join(";");
+                        document.getElementById(getExcludedValuesId()).value = ev.join(";");  
+
+                    }else if(eventName == 'added'){
+                        itemList[api.getId(item)] = {label: api.getLabel(item), itemObj: item};
+                    }else if(eventName == 'loaded'){
+                        var selectedOption = $("select option:selected").attr("value");        
+                        var includedList = includedValues;
+                        var excludedList = excludedValues;
+                        includedValues = {};
+                        excludedValues = {};
+                        for(var indexIncluded in includedList){
+                            if(selectedOption == 'Includi'){
+                                $('#tree').aciTree('api').check(itemList[indexIncluded].itemObj);
+                            }else if(selectedOption == 'Escludi'){
+                                $('#tree').aciTree('api').uncheck(itemList[indexIncluded].itemObj);
+                            }
+                        }
+                        for(var indexExcluded in excludedList){
+                            if(selectedOption == 'Includi'){
+                                $('#tree').aciTree('api').uncheck(itemList[indexExcluded].itemObj);
+                            }else if(selectedOption == 'Escludi'){
+                                $('#tree').aciTree('api').check(itemList[indexExcluded].itemObj);
+                            }
+                        }
+                    }
+            });
+
+            
+            
+        });
+      </script>
+
+        <apex:form >    
+    <apex:inputHidden id="includedValues" value="{!includedIdsString}"/>
+    <apex:inputHidden id="excludedValues" value="{!excludedIdsString}"/>
+    <script>
+        function getIncludedValuesId() {
+            return "{!$Component.includedValues}";
+        }
+        function getExcludedValuesId() {
+            return "{!$Component.excludedValues}";
+        }        
+        function resetGeography() {
+            includedValues = {};
+            excludedValues = {};
+            document.getElementById(getIncludedValuesId()).value = [];
+            document.getElementById(getExcludedValuesId()).value = [];  
+            refreshTree();
+            populateView();
+            return false;        
+        }        
+ 
+    </script>
+    <apex:pageblock >
+        <apex:pageBlockButtons location="top" rendered="{!editable}">
+            <apex:commandButton value="Modifica" rendered="{!mode != 'edit'}" action="{!goInEditMode}"/>
+            <apex:commandButton value="Salva" rendered="{!mode == 'edit'}" action="{!customSave}"/>            
+        </apex:pageBlockButtons>
+        <apex:pageBlockSection >
+            <apex:pageblockSectionItem >
+                Seleziona
+                <apex:selectList id="matchesSelect" value="{!obj.matches__c}" disabled="{!mode != 'edit'}" onchange="swap();" multiselect="false" size="1">
+                    <apex:selectOptions value="{!options}"></apex:selectOptions>
+                </apex:selectList>               
+            </apex:pageblockSectionItem>
+        </apex:pageBlockSection>
+    </apex:pageblock>
+
+    <div id="tree" class="aciTree" style = "width: 400px; height:400px; border: 1px solid black; overflow-y: scroll; float:left" />
+       
+    <div style="width: 400px; height:400px; border: 1px solid black; overflow-y: hidden" >
+        <div style="height: 50px; background-color: #158; color:white">
+            Selected Criteria
+            <apex:outputText rendered="{!mode == 'edit'}">
+                <input type="button" value="reset" onclick="resetGeography()"/>
+            </apex:outputText>
+        </div>
+        <div id="valueDiv" style="height:349px; overflow-y: scroll"></div>
+    </div>
+  </apex:form>
+</apex:component>

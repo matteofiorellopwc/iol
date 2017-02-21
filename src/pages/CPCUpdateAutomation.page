@@ -1,0 +1,100 @@
+<apex:page title="CPC Update Automation" controller="CPCUpdateAutomationController" showHeader="true" sidebar="true" tabStyle="LineItem__c">
+	<script>
+		function toggleAll(isChecked) {
+	    	var checkboxes = new Array();
+	    	checkboxes = document.getElementsByTagName('input');
+
+		     for (var i = 0; i < checkboxes.length; i++) {
+		         if (checkboxes[i].type == 'checkbox' && checkboxes[i].getAttribute('disabled') != 'disabled') {
+	            	checkboxes[i].checked = isChecked;
+		         }
+		     }
+	 	}
+	</script>
+	<apex:form >
+
+		<apex:actionFunction action="{!setLI}" name="getOLIFromMonth"
+		rerender="main_panel" status="statusMonth"/>
+		<apex:outputPanel id="main_panel">
+			<apex:pageBlock title="CPC Update Automation">
+				<apex:pageBlockButtons >
+					<apex:commandButton value="Leggi click da DFP"
+					disabled="{!sizeMapWrappers <= 0}" action="{!getInfoFromDFP}"
+					rerender="main_panel" status="statusMonth" />
+					<apex:commandButton value="Aggiorna Line Item(s)"
+					disabled="{!NOT(isDFPDataRetrieved)}" action="{!updateLI}"
+					rerender="main_panel" status="statusMonth" />
+				</apex:pageBlockButtons>
+
+				<apex:selectList value="{!month}" multiselect="false" size="1"
+				onchange="getOLIFromMonth();">
+		            Seleziona mese: <apex:selectOptions value="{!months}"/>
+		        </apex:selectList>
+				<apex:selectList value="{!year}" multiselect="false" size="1" onchange="getOLIFromMonth();">
+		            Seleziona anno: <apex:selectOptions value="{!years}"/>
+		        </apex:selectList>
+				<apex:actionstatus id="statusMonth">
+		            <apex:facet name="start">
+		                <apex:image value="/img/loading32.gif" width="20" height="20" />
+		            </apex:facet>
+		        </apex:actionstatus>
+
+		        <apex:pageMessages />
+
+		      	<apex:pageBlockSection title="Result" id="table_panel"
+		      	rendered="{!sizeMapWrappers > 0}" columns="1">
+		      		<apex:pageBlockTable value="{!mapWrappers}" var="key">
+		      			<apex:column >
+		      				<apex:facet name="header">
+		      					<input type="checkbox" onchange="toggleAll(this.checked)"
+		      					name="chk[]"/>
+		      					Aggiorna
+		      				</apex:facet>
+		      				<apex:inputCheckbox value="{!mapWrappers[key].toUpdate}"
+		      				disabled="{!NOT(mapWrappers[key].isUpdatable)}"/>
+		      			</apex:column>
+		      			<apex:column headerValue="{!$ObjectType.LineItem__c.fields.Name.Label}">
+		      				<apex:outputLink value="{!'/'+mapWrappers[key].li.Id}">
+		      					{!mapWrappers[key].li.Name}
+		      				</apex:outputLink>
+		      			</apex:column>
+		      			<apex:column headerValue="{!$ObjectType.Opportunity.fields.Name.Label}">
+		      				<apex:outputLink value="{!'/'+mapWrappers[key].li.Opportunity__c}">
+		      					{!mapWrappers[key].li.Opportunity__r.Name}
+		      				</apex:outputLink>
+		      			</apex:column>
+		      			<apex:column value="{!mapWrappers[key].li.Id_DFP__c}" />
+		      			<apex:column headerValue="Clicks Delivered">
+		      				<apex:outputText value="{!mapWrappers[key].clickDFP}"
+		      				rendered="{!mapWrappers[key].clickDFP != null}"
+		      				style="font-weight: bold;" />
+		      				<apex:outputText value="N/A"
+		      				rendered="{!mapWrappers[key].clickDFP = null}"
+		      				style="color: orange;" />
+		      			</apex:column>
+		      			<apex:column value="{!mapWrappers[key].currentQuantity}" headerValue="{!$ObjectType.LineItem__c.fields.Quantita__c.Label}" />
+		      			<apex:column value="{!mapWrappers[key].actualValue}" headerValue="Valore corrente" />
+		      			<apex:column headerValue="Nuovo valore">
+		      				<apex:inputField value="{!mapWrappers[key].li.Totale__c}" rendered="{!isDFPDataRetrieved}" />
+		      				<apex:outputField value="{!mapWrappers[key].li.Totale__c}" rendered="{!NOT(isDFPDataRetrieved)}" />
+		      			</apex:column>
+		      			<apex:column headerValue="Forza Totale">
+		      				<apex:inputCheckbox value="{!mapWrappers[key].isFixedTotal}"
+		      				disabled="{!NOT(mapWrappers[key].isUpdatable)}" />
+		      			</apex:column>
+		      			<!--<apex:column value="{!mapWrappers[key].li.clicksDelivered__c}" />-->
+		      			<apex:column value="{!mapWrappers[key].li.Start_date__c}" />
+		      			<apex:column value="{!mapWrappers[key].li.End_date__c}" />
+		      			<apex:column headerValue="Error">
+		      				<apex:outputText value="{!mapWrappers[key].error}"
+		      				style="color: red;" />
+		      			</apex:column>
+		      			<apex:column headerValue="Status">
+		      				<apex:outputText value="{!mapWrappers[key].msg}" />
+		      			</apex:column>
+		      		</apex:pageBlockTable>
+		      	</apex:pageBlockSection>
+			</apex:pageBlock>
+		</apex:outputPanel>
+	</apex:form>
+</apex:page>

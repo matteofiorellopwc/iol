@@ -1,0 +1,43 @@
+<apex:page controller="ControllerAssetReportService" >
+    <apex:form >
+        <apex:pageBlock >
+            <apex:pageBlockButtons >
+                <apex:commandButton value="run report" action="{!runReport}"/>
+                <apex:commandButton value="get report" action="{!getReport}"/>
+                <apex:commandButton value="get download url" action="{!getReportDownloadUrl}"/>
+                <apex:commandButton value="get csv" action="{!getCsv}"/>
+                <apex:commandButton value="parse csv" action="{!parseCsv}"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection columns="1">
+                <apex:pageBlockSectionItem >
+                    JobId
+                    <apex:inputText value="{!jobid}"/>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    AdUnitView
+                    <apex:inputText value="{!AdUnitView}"/>
+                </apex:pageBlockSectionItem>     
+                <apex:pageBlockSectionItem >
+                    Date
+                    <apex:inputText id="dd" required="true" value="{!dateInMonth}"  onfocus="DatePicker.pickDate(false, '{!$Component.dd}', false);"/>
+                </apex:pageBlockSectionItem>     
+            </apex:pageBlockSection>
+            <apex:pageBlockSection >
+                jobid = {!j.id}<br/>
+                jobstatus  = {!j.status}<br/>
+                jobdownloadurl = {!j.url}
+            </apex:pageBlockSection>
+        </apex:pageBlock>      
+        <apex:pageBlock rendered="{!NOT(ISBLANK(j.aaj.Id))}">
+            <apex:pageBlockButtons >
+                <apex:commandButton value="get Sfdc Job Status" action="{!getSfdcJobStatus}"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection >
+                Id {!j.aaj.Id} <br/>
+                Status {!j.aaj.Status} <br/>
+                JobItemsProcessed {!j.aaj.JobItemsProcessed} <br/>
+                TotalJobItems {!j.aaj.TotalJobItems}
+            </apex:pageBlockSection>
+        </apex:pageBlock>  
+    </apex:form>
+</apex:page>

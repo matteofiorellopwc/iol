@@ -1,0 +1,28 @@
+<apex:page standardController="Ticket_Fatturazione__c" extensions="ExtensionEditTicket">
+    <apex:detail subject="{!Ticket_Fatturazione__c.id}" relatedList="true"/>
+    <apex:form >
+    
+    <apex:pageBlock title="{!$Label.RevenueApplications}">
+    <apex:pageBlockButtons location="top">
+        <apex:commandButton value="Rimuovi fattura dal ticket" action="{!delRaRef}" rendered="{!exclude}"/>
+    </apex:pageBlockButtons>
+
+    <apex:pageBlockTable value="{!table}" var="i" id="revTable" style="width:100%;" rendered="{!IF(table.size>0,true,false)}">
+        <apex:column headerValue="Azione" width="50px">
+            <apex:inputCheckbox value="{!i.sel}"/>
+        </apex:column>
+        <apex:column value="{!i.ra.Name}"/>
+       <apex:column value="{!i.ra.line_item__r.Nome_DFP__c}"/>
+        <apex:column value="{!i.ra.Anno__c}"/>
+        <apex:column value="{!i.ra.Mese__c}"/>
+        <apex:column value="{!i.ra.Percentuale_applicata__c}"/>
+        <apex:column value="{!i.ra.Valore__c}"/>
+    </apex:pageBlockTable>
+    <apex:outputPanel rendered="{!IF(table.size=0,true,false)}">Nessun record da visualizzare
+    </apex:outputPanel>
+
+    </apex:pageBlock>
+    </apex:form>
+    
+    
+</apex:page>

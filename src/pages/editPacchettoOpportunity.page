@@ -1,0 +1,185 @@
+<apex:page standardController="Pacchetto_Combo_Opportunity__c" extensions="ExtensionEditPacchettoOpportunity">
+<style>
+    .dateFormat{
+        display:none;
+    }
+    .datePicker{
+        display:none;
+    }
+</style>
+
+<apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+
+<script>
+    j$ = jQuery.noConflict();
+</script>
+
+<style>
+    .editfalse{
+        display : none;    
+    }
+</style>
+
+
+<apex:form >
+<apex:pageMessage title="Attenzione" detail="Questo Pacchetto è stato cancellato. Per ripristinarlo cliccare sull'apposito pulsante." severity="info" rendered="{!Pacchetto_Combo_Opportunity__c.Cancellato__c}">
+    <apex:commandButton action="{!undeletePacchetto}" value="Ripristina Pacchetto"/>
+</apex:pageMessage>
+    <apex:pageBlock id="pageBlock" >
+    <!--
+        <br />
+            {!queries}
+        <br />    
+    -->        
+        <script type="text/javascript">
+            var __sfdcSessionId = '{!GETSESSIONID()}';
+        </script>
+           
+        <script src="/soap/ajax/25.0/connection.js" type="text/javascript"></script>
+        <script>
+        /* NON SERVE
+            window.onunload = onunloadPage;
+            window.onbeforeunload = onbeforeloadPage;
+            
+            function onbeforeloadPage(){
+                if({!AND(NOT(pco.Personalizzato__c),NOT(ISBLANK(pco.id)))}){
+                    return 'Il pacchetto non è stato salvato, le modifiche andranno perse';
+                }
+            }
+                
+            function onunloadPage(){
+                if({!AND(NOT(pco.Personalizzato__c),NOT(ISBLANK(pco.id)))}){
+                    sforce.connection.deleteIds(['{!pco.id}']);
+                }
+            }
+            
+            function resetUnload(){
+                window.onbeforeunload = function(){};
+                window.onunload = function(){}
+            }
+            
+            function checkPersonalizzato(){
+                if({!AND(NOT(pco.Personalizzato__c),NOT(ISBLANK(pco.id)))}){
+                    return confirm('Il pacchetto non è stato salvato, le modifiche andranno perse');
+                }else{
+                    return true;
+                }
+            }
+        */
+        </script>
+        
+        <apex:outputText rendered="false">
+            {!Pacchetto_Combo_Opportunity__c.Opportunity__c}
+            {!Pacchetto_Combo_Opportunity__c.PacchettoCombo__c}
+            {!Pacchetto_Combo_Opportunity__c.name}
+            {!Pacchetto_Combo_Opportunity__c.Sconto__c}
+            {!Pacchetto_Combo_Opportunity__c.Totale__c}
+            {!Pacchetto_Combo_Opportunity__c.Quantita_totale__c}
+            {!Pacchetto_Combo_Opportunity__c.Data_inizio__c}
+            {!Pacchetto_Combo_Opportunity__c.Data_fine__c}
+            {!Pacchetto_Combo_Opportunity__c.Personalizzato__c}
+            {!Pacchetto_Combo_Opportunity__c.ModalitaEditRevenue__c}
+            {!Pacchetto_Combo_Opportunity__c.id}
+            {!Pacchetto_Combo_Opportunity__c.Cancellato__c}
+            {!Pacchetto_Combo_Opportunity__c.Opportunity__r.DataPrimaChiusaVinta__c}
+        </apex:outputText>
+    
+        <apex:pageMessages escape="false"></apex:pageMessages>        
+        <apex:pageBlockButtons location="top" >
+            <apex:commandButton onclick="resetUnload()" value="Salva" action="{!customSave}"  />
+            <apex:commandButton immediate="true" value="Annulla" action="{!customCancel}"  />
+            <apex:commandButton value="Disponibilità CPM" action="{!CheckAvailability}" rendered="{!not(isblank(pco.id))}" />
+        </apex:pageBlockButtons>
+        <apex:pageBlockSection columns="1">
+            <apex:outputField value="{!pco.Opportunity__c}"/>
+            <apex:outputField value="{!pco.PacchettoCombo__c}"/>
+            <apex:inputField required="true" value="{!pco.name}" />
+            <apex:inputField rendered="{!pac.Sconto_applicabile__c}" onchange="updateCalc('sconto');" required="true" value="{!pco.Sconto__c}" />
+            <apex:outputField rendered="{!NOT(pac.Sconto_applicabile__c)}" value="{!pco.Sconto__c}" />            
+            <apex:inputField rendered="{!pac.Sconto_applicabile__c}" onchange="updateCalc('totale');" required="true" value="{!pco.Totale__c}" />
+            <apex:outputField rendered="{!NOT(pac.Sconto_applicabile__c)}" value="{!pco.Totale__c}" />            
+            <apex:outputField value="{!pco.Quantita_totale__c}" />
+            <apex:outputField value="{!pco.Data_inizio__c}" />
+            <apex:outputField value="{!pco.Data_fine__c}" />
+            <apex:outputField value="{!pco.Personalizzato__c}" rendered="false" />
+            <apex:outputField value="{!pco.id}" rendered="false" />
+            <apex:outputField value="{!pco.ModalitaEditRevenue__c}" rendered="false"/>
+            <apex:pageBlockSectionItem >
+                <apex:outputText ></apex:outputText>
+                <apex:outputText >
+                    <apex:actionStatus stopText="" id="status">
+                        <apex:facet name="start">
+                            aggiorno <img id="loadingRevenueApplication" src="/img/loading32.gif" style="width:20px;"/>
+                        </apex:facet>
+                    </apex:actionStatus>
+                </apex:outputText>
+            </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+        <apex:actionFunction immediate="false" action="{!updateCalc}" name="updateCalc" reRender="pageBlock" status="status">
+            <apex:param name="fieldEdited" assignTo="{!fieldEdited}" value="" />
+        </apex:actionFunction>
+        <apex:pageBlockTable value="{!lis}" var="li"  >
+            <apex:column value="{!li.Product__c}" />
+            <apex:column headerValue="{!$ObjectType.LineItem__c.fields.Start_Date__c.label}">
+                <apex:variable value="{!AND(CONTAINS(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c,'Date'),NOT(ISBLANK(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c)))}" var="editDate" />
+                <apex:inputField required="true"  onchange="updateCalc('');" styleClass="edit{!editDate}"  value="{!li.Start_Date__c}" />
+                <apex:outputField rendered="{!NOT(editDate)}" value="{!li.Start_Date__c}" styleClass="edit{!NOT(editDate)}" />
+            </apex:column>
+            <apex:column headerValue="{!$ObjectType.LineItem__c.fields.End_Date__c.label}">
+                <apex:variable value="{!AND(CONTAINS(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c,'Date'),NOT(ISBLANK(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c)))}" var="editDate" />
+                <apex:inputField required="true"  onchange="updateCalc('');" styleClass="edit{!editDate}"   value="{!li.End_Date__c}" />
+                <apex:outputField rendered="{!NOT(editDate)}"   value="{!li.End_Date__c}" styleClass="edit{!NOT(editDate)}" />
+            </apex:column>
+            <apex:column headerValue="{!$ObjectType.LineItem__c.fields.Goal__c.label}">
+                <apex:variable value="{!AND(CONTAINS(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c,'Goal'),NOT(ISBLANK(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c)))}" var="editGoal" />
+                <apex:outputText >
+                    <apex:inputField required="true" onchange="updateCalc('');" styleClass="edit{!AND(editGoal,li.Delivery_Model__c = 'CPD')}" value="{!li.Goal__c}" />
+                    <apex:outputField rendered="{!AND(NOT(editGoal),li.Delivery_Model__c = 'CPD')}" value="{!li.Goal__c}" styleClass="edit{!NOT(AND(editGoal,li.Delivery_Model__c = 'CPD'))}" />
+                </apex:outputText>                
+            </apex:column>
+            <apex:column headerValue="{!$ObjectType.LineItem__c.fields.Fascia_oraria__c.label}">
+                <apex:variable value="{!AND(CONTAINS(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c,'Fascia oraria'),NOT(ISBLANK(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c)))}" var="editFasciaOraria" />
+                <apex:outputText >
+                    <apex:inputField onchange="updateCalc('');" styleClass="edit{!AND(editFasciaOraria,li.Delivery_Model__c = 'CPD')}" value="{!li.Fascia_oraria__c}"  />
+                    <apex:outputField rendered="{!AND(NOT(editFasciaOraria),li.Delivery_Model__c = 'CPD')}" value="{!li.Fascia_oraria__c}" styleClass="edit{!NOT(AND(editFasciaOraria,li.Delivery_Model__c = 'CPD'))}" />
+                </apex:outputText>                
+            </apex:column>
+            <apex:column headerValue="{!$ObjectType.LineItem__c.fields.TipoTariffa__c.label}">
+                <apex:variable value="{!AND(CONTAINS(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c,'Tariffa Festiva/Feriale'),NOT(ISBLANK(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c)))}" var="editTipoTariffa" />
+                <apex:outputText >
+                    <apex:inputField onchange="updateCalc('');" styleClass="edit{!AND(editTipoTariffa,li.Delivery_Model__c = 'CPD')}" value="{!li.TipoTariffa__c}"  />
+                    <apex:outputField rendered="{!AND(NOT(editTipoTariffa),li.Delivery_Model__c = 'CPD')}" value="{!li.TipoTariffa__c}" styleClass="edit{!NOT(AND(editTipoTariffa,li.Delivery_Model__c = 'CPD'))}" />
+                </apex:outputText>                
+            </apex:column>
+
+            
+            <apex:column value="{!li.Prezzo_listino__c}" />
+            <apex:column value="{!li.sconto__c}" />            
+            <apex:column value="{!li.Prezzo_net__c}" />
+            <apex:column value="{!o.Commissione_Agenzia__c}"/>
+            <apex:column value="{!li.Prezzo_net_net__c}" />
+            <apex:column headerValue="{!$ObjectType.LineItem__c.fields.Quantita__c.label}" >
+                <apex:variable value="{!AND(CONTAINS(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c,'Quantità'),NOT(ISBLANK(prodottiPacchetto[li.Pacchetto_Combo_Prodotto__c].modificabile_in_line_item__c)))}" var="editQuantita" />
+                <apex:inputField required="true" value="{!li.Quantita__c}" onchange="updateCalc('');" styleClass="edit{!AND(editQuantita,li.Delivery_Model__c<>'CPD')}" />
+                <apex:outputField rendered="{!OR(NOT(editQuantita),li.Delivery_Model__c='CPD')}" value="{!li.Quantita__c}" styleClass="edit{!NOT(AND(editQuantita,li.Delivery_Model__c<>'CPD'))}" />
+            </apex:column>
+            <apex:column headerValue="{!$ObjectType.LineItem__c.fields.Totale__c.label}">
+                <apex:inputField rendered="{!OR(li.Type_DFP__c = 'ADSENSE',li.Type_DFP__c = 'AD_EXCHANGE')}" value="{!li.Totale__c}" onchange="updateCalc('');" required="true" />
+                <apex:outputField rendered="{!AND(li.Type_DFP__c <> 'ADSENSE',li.Type_DFP__c <> 'AD_EXCHANGE')}" value="{!li.Totale__c}" />
+            </apex:column>
+            <apex:column headerValue="Messaggi" >
+                <apex:outputText escape="false" value="{!errorMap[li.id]}" />
+                <apex:outputText rendered="{!errorMap[li.id] = 'Conflitto con altro lineitem'}" >
+                    <apex:variable value="{!TEXT(DAY(li.Start_Date__c))&'/'&TEXT(MONTH(li.Start_Date__c))&'/'&TEXT(YEAR(li.Start_Date__c))}" var="startDate"/>
+                    <apex:variable value="{!TEXT(DAY(li.End_Date__c))&'/'&TEXT(MONTH(li.End_Date__c))&'/'&TEXT(YEAR(li.End_Date__c))}" var="endDate"/>
+                    <br/> <a href="/apex/cpdAvailability?id={!li.id}&startdate={!startDate}&enddate={!endDate}" target="_blank">disponibilità CPD</a>
+                </apex:outputText>
+                
+            </apex:column>
+        </apex:pageBlockTable>
+        <br />
+        <c:revenueApplication ControllerRevenueApplication="{!ControllerRevenueApplication}" type="Pacchetto" parentObj="{!pco}" canDelete="{!ISBLANK(Pacchetto_Combo_Opportunity__c.Opportunity__r.DataPrimaChiusaVinta__c)}"/>
+    </apex:pageBlock>
+    
+</apex:form>    
+</apex:page>

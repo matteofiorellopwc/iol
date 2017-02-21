@@ -1,0 +1,124 @@
+<apex:page showHeader="true" sidebar="true" controller="ControllerVerificaBacinoDisponibile">
+
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.qtip,'jquery.qtip.min.css')}" />
+
+    <apex:includeScript value="{!URLFOR($Resource.qtip,'jquery.min.js')}" />
+    <apex:includeScript value="{!URLFOR($Resource.qtip,'jquery-migrate-1.0.0.js')}" />
+    <apex:includeScript value="{!URLFOR($Resource.qtip,'jquery.qtip.min.js')}" />   
+
+    <style type="text/css">
+        
+        #forecastTable{
+            border-right: 1px solid;
+            border-bottom: 1px solid;
+        }
+
+        #forecastTable tr th,#forecastTable tr td{
+            border-left: 1px solid;
+            border-top: 1px solid;
+            padding: 3px;
+        }
+
+        .imgLoading{
+            width: 20px;
+        }
+        .activeTab { 
+            background-color: #236FBD; 
+            color:white; 
+            background-image:none 
+        }
+        .inactiveTab { 
+            background-color: lightgrey; 
+            color:black; 
+            background-image:none
+        }
+
+    </style>
+    <script type="text/javascript">
+        function setFocusOnLoad(){ }
+        
+        function resetUnload(){
+        }
+
+        function recoverUnload(){
+        }
+
+    </script>
+    
+    <apex:sectionHeader subtitle="Verifica disponibilità CPM"/>
+    <apex:form id="form">
+        <apex:pageMessages />
+        <apex:pageBlock title="Seleziona prodotto">
+    		<apex:pageBlockSection columns="1">
+    			<apex:pageBlockSectionItem >
+    				<apex:outputText >Id line item</apex:outputText>
+    				<apex:inputText value="{!idLineItem}" />
+    			</apex:pageBlockSectionItem>
+    		</apex:pageBlockSection>
+    		<apex:commandButton value="Verifica disponibilità bacino" action="{!startCPMAvailability}"/>
+    	</apex:pageBlock>
+    	
+        <apex:image url="/img/loading32.gif" styleClass="imgLoading" rendered="{! AND(NOT(forecast.processed),NOT(ISBLANK(lineItem)))}" />
+        <apex:pageBlock rendered="{!AND(NOT(ISBLANK(lineItem)),forecast.processed)}"  title="Disponibilità CPM" >
+        	<apex:pageBlockSection title="" columns="1">
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >Order Id</apex:outputText>
+    				<apex:outputText value="{!forecast.forecast.orderId}"/>
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >unitType</apex:outputText>
+    				<apex:outputText value="{!forecast.forecast.unitType}" />
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >deliveredUnits</apex:outputText>
+    				<c:formatCurrency value="{!forecast.forecast.deliveredUnits}" showCurrency="false" showDecimal="false" />
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >possibleUnits</apex:outputText>
+    				<c:formatCurrency value="{!forecast.forecast.possibleUnits}" showCurrency="false" showDecimal="false" />
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >reservedUnits</apex:outputText>
+    				<c:formatCurrency value="{!forecast.forecast.reservedUnits}" showCurrency="false" showDecimal="false" />
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >Bacino Iniziale (matchedUnits)</apex:outputText>
+    				<c:formatCurrency value="{!forecast.forecast.matchedUnits}" showCurrency="false" showDecimal="false" />
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >availableUnits</apex:outputText>
+    				<c:formatCurrency value="{!forecast.forecast.availableUnits}" showCurrency="false" showDecimal="false" />
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >Impress.Vendute (matchedUnits - availableUnits)</apex:outputText>
+    				<c:formatCurrency value="{!forecast.forecast.matchedUnits - forecast.forecast.availableUnits}" showCurrency="false" showDecimal="false" />
+        		</apex:pageBlockSectionItem>
+        		<apex:pageBlockSectionItem >
+        			<apex:outputText >Error</apex:outputText>
+    				<apex:outputText value="{!forecast.error}"  />
+        		</apex:pageBlockSectionItem>
+        	</apex:pageBlockSection>
+        </apex:pageBlock>
+        
+        <apex:commandButton style="display:none;" id="processForecastButton" action="{!processForecast}" value="processForecastJs" rendered="{!isRunning}" reRender="form" onclick="resetUnload();" />
+        <script type="text/javascript">
+            //console.log({!isRunning});
+            j$ = jQuery.noConflict();
+            j$(document).ready(function($){
+                if({!isRunning}){
+                    $('input[id$="processForecastButton"]').click();
+                }
+            });
+        </script>                   
+
+
+        <apex:outputPanel id="loadingPanel" style="display:none;">
+            <c:Loading BackColor="#FFFFFF" borderColor="#FFFFFF" borderSize="0" height="50px" width="120px" ImageUrl="/img/loading32.gif" Message="Caricamento..." messageStyle="color:darkred;font-size:11pt;font-weight:bold;"/>
+            <style type="text/css">
+                #salesFroceSource_StatusBox{ position: fixed; }
+            </style>
+        </apex:outputPanel>
+    </apex:form>    
+
+
+</apex:page>

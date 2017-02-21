@@ -1,0 +1,198 @@
+<apex:page standardController="LineItem__c" extensions="ExtensionMinorRicavo" tabStyle="Opportunity" sidebar="false" cache="false" action="{!updateLineItem}">
+    <style>
+        .picklistTime{  width: 50px; }
+        .activeTab { background-color: #236FBD; color:white; background-image:none }
+        .inactiveTab { background-color: lightgrey; color:black; background-image:none}
+        .dateFormat {display:none;}
+        
+        table.multiSelectPicklistTable select{
+            width: 190px;
+            height: 160px;
+        }
+        
+        /*** Page-block Facet Header ***/
+        .facetHeaderTitle {
+            width: 300px;
+            text-align: center; 
+        }
+        
+        .facetHeaderTitle img{
+            margin-right: 10px; 
+            vertical-align: middle;
+            position: relative;
+            bottom: 3px;
+        }
+
+        td.valoreRipianificabile {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+    <apex:includeScript value="{!URLFOR($Resource.jquery,'jquery.js')}"/>
+    <script>
+        function showLoading(loadingId){
+            jQuery('#'+loadingId).show();
+        }
+    </script>
+    <apex:sectionHeader subtitle="Verifica Minor Ricavi"/>
+    <apex:form >
+        <apex:actionFunction name="setMaxValoriStorno" action="{!setMaxValoriStorno}"/>
+        <apex:actionFunction name="aggiornaValoriStorno" action="{!aggiornaValoriStorno}" reRender="pageBlock" >
+            <apex:param name="fieldModified" value=""/>
+        </apex:actionFunction>
+        <apex:pageBlock id="pageBlock">
+            <apex:pageMessages escape="false" ></apex:pageMessages>
+            <apex:panelGroup >
+                <apex:pageMessage rendered="{!AND(minorRicavoMustBeApproved,NOT(errorOccurred))}" title="Attenzione" detail="Per procedere con la ripianificazione/storno di questo Line Item devono essere approvate le quantità richieste" severity="warning" strength="2">
+                </apex:pageMessage>
+                <apex:pageMessage rendered="{!LineItem__c.ApprovazioneMinorRicavo__c == 'Submitted for approval'}" title="Attenzione" detail="Per questo line item è stata richiesta l'approvazione del minor ricavo. Non appena la richiesta verrà approvata sarà possibile procedere con le operazione di ripianificazione/storno." severity="info" strength="2" />
+                <apex:pageMessage rendered="{!LineItem__c.ApprovazioneMinorRicavo__c == 'Rejected'}" title="Attenzione" detail="Per questo line item è stata respinta la richiesta di procedere con le operazioni di ripianificazione/storno con i valori di ripianificazione inseriti. Non è possibile effettuare una nuova richiesta di approvazione." severity="error" strength="2" />
+            </apex:panelGroup>
+            <apex:facet name="header">
+                <apex:panelGrid id="panelControl" columns="1" columnClasses="facetHeaderTitle">
+                    <apex:panelGroup >
+                        <apex:commandButton action="{!goBack}" value="Torna al Line Item" />
+                        <apex:commandButton action="{!rimozioneParteNonErogata}" onclick="if(!confirm('Attenzione: se si procede con la rimozione della parte non erogata questo line item non sarà più modificabile e verrà sospesa l\'erogazione su Salesforce.com e sull\'Ad Server.')){return false;}" value="Rimuovi parte non erogata" rendered="{!AND(NOT(minorRicavoMustBeApproved),NOT(errorOccurred),NOT(hideRimuoviNonErogatoButton),NOT(isApprovalPendingOrRejected),NOT(hideButtons))}" />
+                        <apex:commandButton action="{!ripianifica}" onclick="if(!confirm('Attenzione: se si procede con la ripianificazione il line item ripianificato non sarà più modificabile e verrà sospesa l\'erogazione su Salesforce.com e sull\'Ad Server.')){return false;}" value="Ripianifica per Under Delivery" rendered="{!AND(NOT(minorRicavoMustBeApproved),NOT(errorOccurred),NOT(hideRipianificaButton),NOT(isApprovalPendingOrRejected),NOT(hideButtons))}" />
+                        <apex:commandButton action="{!switchToMinorRicavoParziale}" value="Vai a Minor Ricavo Parziale" rendered="{!AND(NOT(hideButtons), NOT(hideRimuoviNonErogatoButton), OR($Profile.Name == 'Libero - Sales Super User',$Profile.Name == 'System Administrator'))}" />
+                    </apex:panelGroup>    
+                </apex:panelGrid>
+            </apex:facet>
+            <apex:pageBlockSection columns="2" >
+                <apex:outputField value="{!LineItem__c.Name_Dfp__c}" label="Line Item"/>
+                <br/>
+                <apex:outputField value="{!LineItem__c.Start_Date__c}" />
+                <apex:outputField value="{!LineItem__c.End_Date__c}" />
+                <apex:outputField value="{!LineItem__c.Prezzo_net_net__c}"/>
+                <br/>
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection columns="2" title="Dati di ripianificazione" rendered="{!AND(isQuantitaAvailable,primoMinorRicavo,canBeApproved)}" >
+                <apex:outputField value="{!LineItem__c.Quantita__c}" label="Impressions vendute"  />
+                <apex:outputField value="{!LineItem__c.Totale__c}" label="Valore venduto" />
+                <apex:outputField value="{!LineItem__c.ImpressionErogateMinorRicavo__c}" label="Impressions erogate" />
+                <apex:outputField value="{!LineItem__c.Totale_erogato__c}" label="Valore erogato" /> 
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Impressions da ripianificare</apex:outputLabel>
+                    <apex:panelGroup >
+                        <apex:inputField value="{!LineItem__c.QuantitaRipianificabileRichiesta__c}" onchange="showLoading('loadingImpressions');aggiornaValoriStorno('ImpressionsRipianificabili');"/> &nbsp;
+                        <apex:outputLink value="javascript:void(0)" id="setImpressionsRipianificabili" onclick="showLoading('loadingImpressions');setMaxValoriStorno();">(max {!maxValueImpressionsRipianificabile})</apex:outputLink> &nbsp;
+                        <img id="loadingImpressions" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                    </apex:panelGroup>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Valore da ripianificare</apex:outputLabel>
+                    <apex:panelGroup >
+                        <apex:inputfield value="{!LineItem__c.TotaleRipianificabileRichiesto__c}" onchange="showLoading('loadingTotaleRipianificabile');aggiornaValoriStorno('TotaleRipianificabile');"/>   &nbsp;
+                        <apex:outputLink value="javascript:void(0)" id="setMaxValoriStorno" onclick="showLoading('loadingTotaleRipianificabile');setMaxValoriStorno();">(max € {!maxValueTotaleRipianificabile})</apex:outputLink> &nbsp;
+                        <img id="loadingTotaleRipianificabile" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                    </apex:panelGroup>
+                </apex:pageBlockSectionItem>
+                <br/>
+                <apex:outputField value="{!LineItem__c.Totale_ripianificato_positivo__c}" label="Valore già ripianificato" />
+                <br/>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Valore ancora da ripianificare</apex:outputLabel>
+                    <apex:outputField value="{!LineItem__c.ValoreRipianificabileRichiesto__c}"/>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection columns="1" title="Dati di ripianificazione" rendered="{!AND(NOT(isQuantitaAvailable),primoMinorRicavo,canBeApproved)}" >
+                <apex:outputField value="{!LineItem__c.Totale__c}" label="Valore venduto" />
+                <apex:outputField value="{!LineItem__c.Totale_erogato__c}" label="Valore erogato" /> 
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Valore da ripianificare</apex:outputLabel>
+                    <apex:panelGroup >
+                        <apex:inputfield value="{!LineItem__c.TotaleRipianificabileRichiesto__c}" onchange="showLoading('loadingTotaleRipianificabile');aggiornaValoriStorno('TotaleRipianificabile');"/> &nbsp;
+                        <apex:outputLink value="javascript:void(0)" id="setMaxValoriStorno" onclick="showLoading('loadingTotaleRipianificabile');setMaxValoriStorno();">(max € {!maxValueTotaleRipianificabile})</apex:outputLink> &nbsp;
+                        <img id="loadingTotaleRipianificabile" src="/img/loading32.gif" style="width:20px;display:none;"/>
+                    </apex:panelGroup>
+                </apex:pageBlockSectionItem>
+                <apex:outputField value="{!LineItem__c.Totale_ripianificato_positivo__c}" label="Valore già ripianificato" />
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Valore ancora da ripianificare</apex:outputLabel>
+                    <apex:outputField value="{!LineItem__c.ValoreRipianificabileRichiesto__c}"/>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection columns="2" title="Dati di ripianificazione" rendered="{!AND(isQuantitaAvailable,OR(NOT(canBeApproved),NOT(primoMinorRicavo)))}" >
+                <apex:outputField value="{!LineItem__c.Quantita__c}" label="Impressions vendute"  />
+                <apex:outputField value="{!LineItem__c.Totale__c}" label="Valore venduto" />
+                <apex:outputField value="{!LineItem__c.QuantitaApprovata__c}" label="Impressions ripianificabili" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c !='Submitted for approval'}"/>
+                <apex:outputField value="{!LineItem__c.QuantitaRipianificabileRichiesta__c}" label="Impressions ripianificabili" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c =='Submitted for approval'}"/>
+                <apex:outputField value="{!LineItem__c.Totale_erogato__c}" label="Valore erogato" /> 
+                <apex:outputText value="{!LineItem__c.Quantita__c - LineItem__c.ImpressionErogateMinorRicavo__c}" label="Impressions ripianificabili" />
+                <apex:outputField value="{!LineItem__c.TotaleRipianificabileApprovato__c}" label="Valore da ripianificare" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c !='Submitted for approval'}"/>  
+                <apex:outputField value="{!LineItem__c.TotaleRipianificabileRichiesto__c}" label="Valore da ripianificare" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c == 'Submitted for approval'}"/>
+                <br/>
+                <apex:outputField value="{!LineItem__c.Totale_ripianificato_positivo__c}" label="Valore già ripianificato" />
+                <br/>
+                <apex:pageBlockSectionItem dataStyleClass="valoreRipianificabile" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c !='Submitted for approval'}">
+                    <apex:outputLabel >Valore ancora da ripianificare</apex:outputLabel>
+                    <apex:outputField value="{!LineItem__c.ValoreRipianificabileApprovatoFormula__c}" />
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem dataStyleClass="valoreRipianificabile" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c =='Submitted for approval'}">
+                    <apex:outputLabel >Valore ancora da ripianificare</apex:outputLabel>
+                    <apex:outputField value="{!LineItem__c.ValoreRipianificabileRichiesto__c}" />
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection columns="1" title="Dati di ripianificazione" rendered="{!AND(NOT(isQuantitaAvailable),OR(NOT(canBeApproved),NOT(primoMinorRicavo)))}" >
+                <apex:outputField value="{!LineItem__c.Totale__c}" label="Valore venduto" />
+                <apex:outputField value="{!LineItem__c.Totale_erogato__c}" label="Valore erogato"/> 
+                <apex:outputField value="{!LineItem__c.TotaleRipianificabileApprovato__c}" label="Valore da ripianificare" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c !='Submitted for approval'}"/> 
+                <apex:outputField value="{!LineItem__c.TotaleRipianificabileRichiesto__c}" label="Valore da ripianificare" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c == 'Submitted for approval'}"/> 
+                <apex:outputField value="{!LineItem__c.Totale_ripianificato_positivo__c}" label="Valore già ripianificato" />
+                <apex:pageBlockSectionItem dataStyleClass="valoreRipianificabile" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c !='Submitted for approval'}">
+                    <apex:outputLabel >Valore ancora da ripianificare</apex:outputLabel>
+                    <apex:outputField value="{!LineItem__c.ValoreRipianificabileApprovatoFormula__c}" />
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem dataStyleClass="valoreRipianificabile" rendered="{!LineItem__c.ApprovazioneMinorRicavo__c =='Submitted for approval'}">
+                    <apex:outputLabel >Valore ancora da ripianificare</apex:outputLabel>
+                    <apex:outputField value="{!LineItem__c.ValoreRipianificabileRichiesto__c}" />
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+             <apex:facet name="footer">
+                <apex:panelGrid id="panelControlFooter" columns="1" columnClasses="facetHeaderTitle" rendered="{!AND(minorRicavoMustBeApproved,NOT(errorOccurred))}">
+                    <apex:panelGroup >
+                        <apex:commandButton action="{!requireApproval}" value="Richiedi approvazione" id="requireApprovalButton" reRender="pageBlock"/>
+                    </apex:panelGroup>    <!--oncomplete="window.location.reload();"-->
+                </apex:panelGrid>
+            </apex:facet>
+        </apex:pageBlock>
+    </apex:form>
+
+    <apex:outputText rendered="false">
+        {!LineItem__c.Delivery_Model__c}
+        {!LineItem__c.Type_DFP__c}
+        {!LineItem__c.Integrato_con_DFP_formula__c}
+        {!LineItem__c.Integrato_con_OAS_formula__c}
+        {!LineItem__c.Id_DFP__c}
+        {!LineItem__c.Id_oas__c}
+        {!LineItem__c.RimozioneParteNonErogata__c}
+        {!LineItem__c.Ripianificato__c}
+        {!LineItem__c.ApprovazioneMinorRicavo__c}
+        {!LineItem__c.Status__c}
+        {!LineItem__c.Status_oas__c}
+        {!LineItem__c.ImpressionErogateMinorRicavo__c}
+        {!LineItem__c.Line_Item_Ripianificato__c}
+        {!LineItem__c.Revenue_applications__r}
+        {!LineItem__c.End_Hour__c}
+        {!LineItem__c.End_Minute__c}
+        {!LineItem__c.ProductFamily__c}
+        {!LineItem__c.CalcolaCPDconImpStimate__c}
+        {!LineItem__c.Impressions_stimate__c}
+        {!LineItem__c.Goal__c}
+        {!LineItem__c.Ultima_modifica_prezzo__c}
+        {!LineItem__c.Duration__c}
+        {!LineItem__c.Data_sospensione_erogazione__c}
+        {!LineItem__c.ValoreRipianificabileApprovato__c}
+        {!LineItem__c.TotaleRipianificabileApprovato__c}
+        {!LineItem__c.QuantitaApprovata__c}
+        {!LineItem__c.Opportunity__c}
+        {!LineItem__c.Opportunity__r}
+        {!LineItem__c.Opportunity__r.Local__c}
+        {!LineItem__c.totaleRipianificabile__c}
+        {!LineItem__c.StartDateTimeFormula__c}
+    </apex:outputText>
+</apex:page>

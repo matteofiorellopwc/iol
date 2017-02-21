@@ -1,0 +1,4 @@
+﻿ADX_Placement_ID;Value
+ID001;400
+666;1234,56
+ID002;1000
